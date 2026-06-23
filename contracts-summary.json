@@ -1,0 +1,15 @@
+{
+  "total": 136,
+  "counts": {
+    "administrativos": 28,
+    "finalisticos": 55,
+    "fms": 53
+  },
+  "odCabwCount": 48,
+  "totalValorContrato": 1251965129.97,
+  "totalEmpenhadoUsd": 607157980.6,
+  "totalFaturadoUsd": 510287238.12,
+  "totalValorAEmpenhar": 609231731.9000001,
+  "source": "controle_financeiro_contratos(1).xlsx",
+  "updated": "2026-06-16"
+}
