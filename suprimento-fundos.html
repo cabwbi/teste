@@ -1004,7 +1004,7 @@ table.dataTable thead th {
 }
 
 
-/* ===== Menus adicionais: Deep research e Governança ===== */
+/* ===== Menus adicionais: Governança ===== */
 .module-detail-page {
   padding-top: 46px !important;
 }
@@ -2043,7 +2043,6 @@ table.dataTable thead th {
       <li class="nav-item"><a class="nav-link" href="credito.html"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Crédito Disponível</span></a></li>
       <li class="nav-item"><a class="nav-link" href="contratos.html"><i class="bi bi-file-earmark-check" aria-hidden="true"></i><span>Contratos</span></a></li>
       <li class="nav-item"><a class="nav-link" href="processos.html"><i class="bi bi-clipboard2-check" aria-hidden="true"></i><span>Processos de Contratação</span></a></li>
-      <li class="nav-item"><a class="nav-link" href="requisicoes.html"><i class="bi bi-journal-check" aria-hidden="true"></i><span>Deep research</span></a></li>
       <li class="nav-item"><a class="nav-link" href="governanca.html"><i class="bi bi-diagram-3" aria-hidden="true"></i><span>Governança</span></a></li>
     <li class="nav-item active"><a class="nav-link" href="suprimento-fundos.html" aria-current="page"><i class="bi bi-cash-coin" aria-hidden="true"></i><span>Suprimento de Fundos</span></a></li></ul>
   </div>
@@ -2052,5 +2051,5 @@ table.dataTable thead th {
 
 <main class="container-fluid mt-4 contract-detail-page"><header class="contract-panel-hero"><span class="contract-menu-card__icon contract-section-card__icon"><i class="bi bi-cash-coin"></i></span><div><span class="contracts-eyebrow">Painel financeiro</span><h1>Suprimento de Fundos</h1><p>Empenhos associados a requisições do projeto SF.</p></div></header><section class="sf-kpi-grid"><article class="sf-kpi"><span>Crédito disponível SF</span><strong id="sfCredito">—</strong></article><article class="sf-kpi"><span>Total empenhado filtrado</span><strong id="sfEmpAno">—</strong></article><article class="sf-kpi"><span>Saldo empenhado não faturado</span><strong id="sfSaldo">—</strong></article><article class="sf-kpi"><span>Requisições SF</span><strong id="sfReq">—</strong></article><article class="sf-kpi"><span>Pessoas atendidas</span><strong id="sfPessoas">—</strong></article></section><section class="sf-card"><h2>Filtros</h2><div class="sf-filter-grid"><label class="sf-field"><span>Nome de empresa / pessoa</span><select id="sfEmpresa"></select></label><label class="sf-field"><span>Faixa de valor</span><select id="sfFaixa"></select></label><label class="sf-field"><span>Natureza de despesa</span><select id="sfNatureza"></select></label><label class="sf-field"><span>Subelemento de despesa</span><select id="sfSubelemento"></select></label><label class="sf-field"><span>Ano da PO</span><select id="sfAno"></select></label></div><div class="detail-actions-row" style="margin-top:12px"><button id="sfClear" type="button" class="detail-button detail-button--secondary"><i class="bi bi-arrow-counterclockwise"></i> Limpar filtros</button></div></section><section class="sf-grid-2"><article class="sf-card"><h2>Empenhado, faturado e saldo por empresa</h2><div id="sfEmpresasChart"></div></article><article class="sf-card"><h2>Distribuição do empenho</h2><div id="sfPizzaChart"></div></article></section><section class="sf-card"><h2>Ordens de compra de suprimento de fundos</h2><div class="contracts-table-wrap"><table class="sf-table" id="sfTable"><thead><tr><th>PO</th><th>Data</th><th>Empresa</th><th>Natureza</th><th>Subelemento</th><th>Valor total da PO</th><th>Valor faturado</th><th>Saldo disponível da PO</th></tr></thead><tbody></tbody></table></div></section></main>
 
-<script src="credit-data.js"></script><script src="suprimento-data.js"></script><script src="suprimento-fundos.js"></script><script src="auth.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script><script src="credit-data.js"></script><script src="suprimento-data.js"></script><script src="suprimento-fundos.js"></script><script src="auth.js"></script>
 </body></html>

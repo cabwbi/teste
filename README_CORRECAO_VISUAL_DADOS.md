@@ -11,6 +11,6 @@ Este pacote corrige os pontos indicados:
 - Crédito disponível atualizado com `digitos(1).xlsx`.
   - Total de saldo disponível: US$ 3.953.301,18.
   - Painéis ajustados aos nomes dos campos existentes na planilha.
-- Menu e cartão `Requisições` renomeados para `Deep research`.
+- Menu e cartão `Requisições` renomeados para ``.
 
 Publique o conteúdo interno do ZIP diretamente na raiz do repositório GitHub Pages.

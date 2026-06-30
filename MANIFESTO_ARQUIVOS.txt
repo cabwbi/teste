@@ -60,7 +60,6 @@ icons/process_icon.png
 index.html
 process_icon.png
 processos.html
-requisicoes.html
 rp-data.js
 rp-panel.js
 style.css
