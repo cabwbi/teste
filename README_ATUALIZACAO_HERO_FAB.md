@@ -1,0 +1,1 @@
+Atualização: substituida a imagem de fundo da página principal pela arte institucional FAB fornecida pelo usuário, preservando a resolução original 2048x650 e mantendo fallback embutido no index.html.
