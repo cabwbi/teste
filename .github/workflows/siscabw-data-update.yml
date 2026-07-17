@@ -1,0 +1,103 @@
+name: Atualização automática SISCABW
+
+on:
+  schedule:
+    - cron: "0 12 * * 1-5"
+    - cron: "0 13 * * 1-5"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/siscabw-data-update.yml"
+      - "automation/**"
+
+concurrency:
+  group: siscabw-data-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: America/New_York
+      DRIVE_INPUT_FOLDER_ID: 1OF-84Nnbfp0y9M-nPDDWQqeeYfjQma-c
+      GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - name: Verificar janela de execução
+        id: gate
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" != "schedule" ]] || [[ "$(date +%u-%H)" =~ ^[1-5]-08$ ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: automation/requirements.txt
+
+      - name: Instalar dependências fixadas
+        if: steps.gate.outputs.run == 'true'
+        run: pip install --requirement automation/requirements.txt
+
+      - name: Baixar as nove planilhas do Drive
+        if: steps.gate.outputs.run == 'true'
+        run: python automation/download_drive.py --folder-id "$DRIVE_INPUT_FOLDER_ID" --output "$RUNNER_TEMP/siscabw-inputs"
+
+      - name: Regenerar somente os dados autorizados
+        if: steps.gate.outputs.run == 'true'
+        run: python automation/generate_data.py --inputs "$RUNNER_TEMP/siscabw-inputs" --repo "$GITHUB_WORKSPACE"
+
+      - name: Validar dados e bloquear alterações não autorizadas
+        if: steps.gate.outputs.run == 'true'
+        run: python automation/validate_data.py --repo "$GITHUB_WORKSPACE" --allowlist automation/data_allowlist.txt --report "$RUNNER_TEMP/relatorio-siscabw.md"
+
+      - name: Publicar relatório no resumo da execução
+        if: always() && steps.gate.outputs.run == 'true'
+        shell: bash
+        run: test -f "$RUNNER_TEMP/relatorio-siscabw.md" && cat "$RUNNER_TEMP/relatorio-siscabw.md" >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Salvar relatório em português
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-siscabw-${{ github.run_number }}
+          path: ${{ runner.temp }}/relatorio-siscabw.md
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Encerrar sem commit quando os dados não mudaram
+        if: steps.gate.outputs.run == 'true'
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Commit automático dos dados validados
+        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          git config user.name "siscabw-data-bot"
+          git config user.email "siscabw-data-bot@users.noreply.github.com"
+          mapfile -t allowed < automation/data_allowlist.txt
+          git add -- "${allowed[@]}"
+          test -z "$(git diff --cached --name-only | grep -vxFf automation/data_allowlist.txt || true)"
+          git commit -m "Atualiza dados automáticos do Painel CABW em $(date +%d-%m-%Y)"
+          git push origin HEAD:main
+
+      - name: Verificar GitHub Pages
+        if: steps.gate.outputs.run == 'true' && steps.changes.outputs.changed == 'true'
+        run: python automation/verify_pages.py --repo "$GITHUB_WORKSPACE" --url "https://cabwbi.github.io/teste/"
