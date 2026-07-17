@@ -1,16 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" type="text/css" href="css/style.css">
-
-  <title>Painel CABW - Contratos Administrativos</title>
-
-<style id="cabw-inline-style">
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
 
 :root {
@@ -198,7 +185,7 @@ a:hover {
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(0, 37, 92, 0.08) 0%, rgba(0, 42, 99, 0.38) 70%, rgba(0, 41, 96, 0.76) 100%),
-    url('assets/img/hero_aircraft_clean.png') center center / cover no-repeat;
+    url('../assets/img/hero_kc390_cabw.png') center center / cover no-repeat;
   color: var(--cabw-white);
   isolation: isolate;
 }
@@ -358,6 +345,18 @@ a:hover {
   color: var(--cabw-navy-800);
   font-size: 3.65rem;
   line-height: 1;
+}
+
+.home-card__symbol img {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+
+.home-card__symbol--image {
+  background: transparent;
+  box-shadow: none;
 }
 
 .home-card h2 {
@@ -1006,7 +1005,7 @@ table.dataTable thead th {
 }
 
 
-/* ===== Menus adicionais: Governança ===== */
+/* ===== Menus adicionais: Requisições e Governança ===== */
 .module-detail-page {
   padding-top: 46px !important;
 }
@@ -1827,7 +1826,26 @@ table.dataTable thead th {
   }
 }
 
+/* Fallback visual v2 */
+.home-card__symbol--image img{display:block;width:74px;height:74px;object-fit:contain;}
 
+.risk-flag{display:inline-block;margin-left:.35rem;padding:.15rem .45rem;border-radius:999px;background:#ffd200;color:#003b7a;font-weight:700;font-size:.78rem}
+
+
+/* CABW custom dropdown multi-selects */
+select.cabw-native-multi-hidden{display:none!important;}
+.cabw-multi-dropdown{position:relative;width:100%;font-family:inherit;}
+.cabw-multi-button{width:100%;min-height:46px;border:1px solid #ccd6e6;border-radius:10px;background:#f8fbff;color:#001f55;padding:10px 42px 10px 14px;text-align:left;font-weight:500;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);cursor:pointer;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cabw-multi-button:after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:15px;color:#003b7a;pointer-events:none;}
+.cabw-multi-dropdown.open .cabw-multi-button{border-color:#f5c400;box-shadow:0 0 0 .2rem rgba(245,196,0,.18);background:#fff;}
+.cabw-multi-menu{display:none;position:absolute;z-index:3000;left:0;right:0;top:calc(100% + 6px);max-height:300px;overflow:auto;background:#fff;border:1px solid #ccd6e6;border-radius:12px;box-shadow:0 14px 32px rgba(0,31,85,.18);padding:6px;}
+.cabw-multi-dropdown.open .cabw-multi-menu{display:block;}
+.cabw-multi-option{display:flex;gap:9px;align-items:flex-start;padding:8px 9px;border-radius:8px;color:#001f55;font-size:14px;line-height:1.25;cursor:pointer;margin:0;}
+.cabw-multi-option:hover{background:#eef5ff;}
+.cabw-multi-option input{margin-top:2px;accent-color:#003b7a;flex:0 0 auto;}
+.cabw-multi-actions{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #e7edf6;margin-bottom:4px;padding:4px 4px 8px;position:sticky;top:0;background:#fff;z-index:1;}
+.cabw-multi-actions button{border:0;border-radius:8px;background:#e9eef6;color:#003b7a;font-weight:700;padding:5px 8px;font-size:12px;cursor:pointer;}
+.cabw-multi-actions button:hover{background:#dce6f2;}
 
 /* Correção do dropdown multiseleção: janela compacta e checkboxes proporcionais */
 .cabw-multi-dropdown{position:relative;width:100%;max-width:100%;font-family:inherit;}
@@ -1859,288 +1877,37 @@ table.dataTable thead th {
 .cabw-multi-actions button{min-height:28px!important;width:auto!important;min-width:0!important;border:0;border-radius:8px;background:#e9eef6;color:#003b7a;font-weight:700;padding:5px 10px;font-size:12px;cursor:pointer;}
 
 
-
-/* ===== Ajustes CABW: logo, filtros sem seleção inicial e área de relatórios ===== */
-.navbar, .cabw-navbar { padding-right: 96px !important; }
-.navbar-collapse { padding-right: 88px !important; }
-.navbar-nav { flex-wrap: wrap !important; }
-.header-logo, .cabw-header-logo { width: 54px !important; top: 18px !important; right: 18px !important; z-index: 2 !important; opacity: .96; }
-@media (max-width: 1200px){ .header-logo, .cabw-header-logo{ display:none !important; } .navbar, .cabw-navbar{ padding-right: 32px !important; } .navbar-collapse{ padding-right:0 !important; } }
-.cabw-filter-report-layout { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:24px; align-items:stretch; }
-.cabw-filter-report-layout > .detail-workbench__panel { min-width:0; }
-.cabw-report-panel { background:#fff; border-radius:18px; box-shadow:0 18px 34px rgba(2,27,70,.10); padding:24px; border:1px solid rgba(0,31,85,.07); display:flex; flex-direction:column; justify-content:space-between; gap:16px; }
-.cabw-report-panel__icon { width:46px; height:46px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; background:#eef3fa; color:#003b7a; font-size:22px; }
-.cabw-report-panel h2 { margin:0; color:#00265f; font-size:1.45rem; font-weight:800; }
-.cabw-report-panel p { margin:0; color:#263a59; line-height:1.45; text-align:justify; }
-.cabw-report-button { border:0; border-radius:12px; background:#ffd200; color:#00265f; font-weight:800; padding:12px 16px; box-shadow:0 8px 20px rgba(0,31,85,.15); cursor:pointer; }
-.cabw-report-button:hover { filter:brightness(.96); transform:translateY(-1px); }
-.contracts-workbench { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:24px; align-items:start; }
-.contracts-workbench .contracts-filter-header, .contracts-workbench .contracts-filter-grid { grid-column:1; }
-.contracts-workbench .cabw-report-panel { grid-column:2; grid-row:1 / span 2; height:100%; }
-@media (max-width: 992px){ .cabw-filter-report-layout, .contracts-workbench { grid-template-columns:1fr !important; } .contracts-workbench .cabw-report-panel { grid-column:1; grid-row:auto; } }
-.contracts-checkbox-inline{display:flex!important;align-items:center;gap:10px;min-height:46px;border:1px solid #ccd6e6;border-radius:10px;background:#f8fbff;color:#001f55;padding:10px 14px;font-weight:700}.contracts-checkbox-inline input{width:18px;height:18px;accent-color:#003b7a}.contract-po-card tfoot th{background:#eef5ff;color:#001f55}</style>
-<style id="cabw-final-adjustments">
-
-/* ===== Ajustes finais CABW: tabelas roláveis, relatórios e layout responsivo ===== */
-.table-responsive,
-.cabw-table-scroll,
-.contracts-table-wrap {
-  max-height: 540px !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-  width: 100% !important;
-  border-radius: 14px;
-}
-.table-responsive table,
-.cabw-table-scroll table,
-.contracts-table-wrap table {
-  min-width: 980px;
-  margin-bottom: 0;
-}
-.contracts-table-wrap { max-height: 600px !important; }
-.cabw-table th,
-.contracts-table th,
-.credit-summary-table th,
-.table-responsive thead th {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-}
-.detail-workbench.cabw-filter-report-layout {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(310px, 370px) !important;
-  gap: 24px !important;
-  align-items: stretch !important;
-}
-.detail-workbench.cabw-filter-report-layout > .detail-workbench__panel {
-  grid-column: 1 !important;
-  min-width: 0 !important;
-}
-.detail-workbench.cabw-filter-report-layout > .cabw-report-panel {
-  grid-column: 2 !important;
-  align-self: stretch !important;
-  height: auto !important;
-}
-.cabw-report-panel {
-  background: #fff !important;
-  border-radius: 18px !important;
-  box-shadow: 0 18px 34px rgba(2,27,70,.10) !important;
-  padding: 24px !important;
-  border: 1px solid rgba(0,31,85,.07) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: space-between !important;
-  gap: 16px !important;
-}
-.cabw-report-panel__icon {
-  width: 46px !important;
-  height: 46px !important;
-  border-radius: 14px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #eef3fa !important;
-  color: #003b7a !important;
-  font-size: 22px !important;
-}
-.cabw-report-panel h2 {
-  margin: 18px 0 12px !important;
-  color: #00265f !important;
-  font-size: 1.45rem !important;
-  font-weight: 800 !important;
-}
-.cabw-report-panel p {
-  margin: 0 !important;
-  color: #263a59 !important;
-  line-height: 1.45 !important;
-  text-align: justify !important;
-}
-.cabw-report-button {
-  border: 0 !important;
-  border-radius: 12px !important;
-  background: #ffd200 !important;
-  color: #00265f !important;
-  font-weight: 800 !important;
-  padding: 12px 16px !important;
-  box-shadow: 0 8px 20px rgba(0,31,85,.15) !important;
-  cursor: pointer !important;
-}
-.cabw-report-button:hover { filter: brightness(.96); transform: translateY(-1px); }
-.home-hero {
-  background-image: linear-gradient(180deg, rgba(0,37,92,.08) 0%, rgba(0,42,99,.38) 70%, rgba(0,41,96,.76) 100%), url('assets/img/hero_home_cabw_background.png') !important;
-  background-position: center center !important;
-  background-size: cover !important;
-  background-repeat: no-repeat !important;
-}
-@media (max-width: 992px) {
-  .detail-workbench.cabw-filter-report-layout { grid-template-columns: 1fr !important; }
-  .detail-workbench.cabw-filter-report-layout > .cabw-report-panel { grid-column: 1 !important; }
-}
-</style>
-
-<style id="cabw-layout-final-fix">
-.table-responsive, .cabw-table-scroll, .contracts-table-wrap { max-height: 560px !important; overflow-x: auto !important; overflow-y: auto !important; width: 100% !important; }
-.table-responsive table, .cabw-table-scroll table, .contracts-table-wrap table { min-width: 980px !important; }
-.detail-workbench.cabw-filter-report-layout { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(310px, 370px) !important; gap: 24px !important; align-items: stretch !important; }
-.detail-workbench.cabw-filter-report-layout > .detail-workbench__panel { grid-column: 1 !important; min-width: 0 !important; }
-.detail-workbench.cabw-filter-report-layout > .cabw-report-panel { grid-column: 2 !important; align-self: stretch !important; height: auto !important; }
-.contracts-workbench { display: grid !important; grid-template-columns: minmax(0,1fr) minmax(310px,370px) !important; gap: 24px !important; align-items: stretch !important; }
-.contracts-workbench > .contracts-filter-header { grid-column: 1 !important; grid-row: 1 !important; }
-.contracts-workbench > .contracts-filter-grid { grid-column: 1 !important; grid-row: 2 !important; min-width: 0 !important; }
-.contracts-workbench > .cabw-report-panel { grid-column: 2 !important; grid-row: 1 / span 2 !important; align-self: stretch !important; }
-@media (max-width: 992px) { .detail-workbench.cabw-filter-report-layout, .contracts-workbench { grid-template-columns: 1fr !important; } .detail-workbench.cabw-filter-report-layout > .cabw-report-panel, .contracts-workbench > .cabw-report-panel { grid-column: 1 !important; grid-row: auto !important; } }
-</style>
-
-<style id="cabw-filter-chart-final-fix">
-/* Ajuste de leitura dos filtros: 2 a 3 campos por linha e dropdown amplo */
-.contracts-filter-grid{grid-template-columns:repeat(3,minmax(230px,1fr))!important;align-items:end!important;gap:16px!important;}
-.contracts-field--wide{grid-column:span 2!important;}
-.cabw-multi-menu{box-sizing:border-box!important;left:0!important;right:auto!important;width:max-content!important;min-width:min(440px,calc(100vw - 48px))!important;max-width:min(780px,calc(100vw - 48px))!important;overflow-x:auto!important;}
-.cabw-multi-dropdown.cabw-align-right .cabw-multi-menu{left:auto!important;right:0!important;}
-.cabw-multi-option span{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;}
-.cabw-multi-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;}
-.cabw-multi-actions button{width:100%!important;white-space:nowrap!important;}
-.cabw-multi-filter-line{grid-template-columns:minmax(160px,1fr) auto!important;}
-@media (max-width:1320px){.contracts-filter-grid{grid-template-columns:repeat(2,minmax(230px,1fr))!important;}.contracts-field--wide{grid-column:span 2!important;}}
-@media (max-width:768px){.contracts-filter-grid{grid-template-columns:1fr!important;}.contracts-field--wide{grid-column:auto!important;}.cabw-multi-menu{min-width:100%!important;max-width:calc(100vw - 32px)!important;}}
-</style>
-  <script src="auth.js?v=auth-cabw-2026"></script>
-</head>
-<body class="contracts-page contracts-panel-page" data-contract-category="administrativos">
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-  <a class="navbar-brand" href="index.html">Painel CABW</a>
-  <img src="cabw_logo.png" alt="Brasão da Comissão Aeronáutica Brasileira em Washington" class="header-logo">
-  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarNav">
-    <ul class="navbar-nav mr-auto">
-      <li class="nav-item"><a class="nav-link" href="index.html">Início</a></li>
-      <li class="nav-item"><a class="nav-link" href="credito.html">Crédito Disponível</a></li>
-      <li class="nav-item active"><a class="nav-link" href="contratos.html" aria-current="page">Contratos</a></li>
-      <li class="nav-item"><a class="nav-link" href="processos.html">Processos de Contratação</a></li>
-      <li class="nav-item"><a class="nav-link" href="governanca.html">Governança</a></li>
-    <li class="nav-item"><a class="nav-link" href="suprimento-fundos.html">Suprimento de Fundos</a></li></ul>
-  </div>
-</nav>
+/* CABW - melhoria da tabela de contratos por vencimento */
+.contracts-table{min-width:1420px;}
+.contracts-table tbody tr.contract-row--vencido td{background:rgba(164,28,43,.12)!important;border-bottom-color:rgba(164,28,43,.18)!important;}
+.contracts-table tbody tr.contract-row--ate-90 td{background:rgba(185,28,28,.10)!important;border-bottom-color:rgba(185,28,28,.22)!important;}
+.contracts-table tbody tr.contract-row--ate-150 td{background:rgba(255,210,0,.16)!important;border-bottom-color:rgba(212,169,0,.24)!important;}
+.contracts-table tbody tr.contract-row--sem-data td{background:rgba(108,117,125,.08)!important;}
+.contract-due-badge,.contract-status-pill,.contract-gc-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-weight:800;line-height:1.15;white-space:nowrap;}
+.contract-due-badge{min-width:104px;padding:6px 10px;font-size:.78rem;border:1px solid transparent;}
+.contract-status-pill{padding:6px 10px;font-size:.76rem;border:1px solid transparent;}
+.contract-gc-chip{min-width:44px;padding:5px 9px;font-size:.78rem;background:#eef3fa;color:#003b7a;border:1px solid #cdd8e8;}
+.contract-due-badge--vencido,.contract-status-pill--vencido{background:#a41c2b;color:#fff;border-color:#8f1825;}
+.contract-due-badge--ate-90,.contract-status-pill--ate-90{background:#ffd200;color:#003b7a;border-color:#e4bc00;}
+.contract-due-badge--ate-150,.contract-status-pill--ate-150{background:#fff2b8;color:#5c4700;border-color:#f0d76a;}
+.contract-due-badge--regular,.contract-status-pill--regular{background:#e8f6ef;color:#006d49;border-color:#bfe5d2;}
+.contract-due-badge--sem-data,.contract-status-pill--sem-data{background:#eef1f5;color:#52627a;border-color:#d8dee8;}
+.contract-date-cell{white-space:nowrap;font-weight:700;color:#0a2450;}
+.risk-flag{display:inline-flex!important;margin-left:.35rem;padding:.18rem .48rem;border-radius:999px;background:#003b7a!important;color:#fff!important;font-weight:800;font-size:.72rem;vertical-align:middle;white-space:nowrap;}
+.contracts-table thead th:nth-child(5),.contracts-table tbody td:nth-child(5){text-align:center;}
 
 
-<style id="cabw-dynamic-dashboard-css">
-.cabw-multi-select{background:#f8fbff!important;}
-.cabw-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:28px 0;}
-.cabw-chart-card,.cabw-list-card{background:#fff;border-radius:18px;box-shadow:0 18px 34px rgba(2,27,70,.10);padding:22px;}
-.cabw-list-card{margin-top:28px;}
-.cabw-table-scroll{max-height:520px;overflow:auto;}
-.cabw-table th{position:sticky;top:0;background:#003b7a;color:#fff;z-index:1;}
-.risk-flag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#ffd200;color:#00265f;font-weight:800;font-size:.75rem;}
+/* CABW - coluna de risco de vencimento dos contratos */
+.contract-risk-chip{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:.78rem;line-height:1.15;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.contract-risk-chip--critico{background:#b91c1c!important;color:#fff!important;border:1px solid #991b1b!important;}
+.contract-risk-chip--atencao{background:#ffd200!important;color:#4a3a00!important;border:1px solid #d4a900!important;}
+.contract-risk-chip--normal{background:#003b7a!important;color:#fff!important;border:1px solid #00265f!important;}
+.contract-risk-chip--sem-data{background:#e5e7eb!important;color:#374151!important;border:1px solid #cbd5e1!important;}
+.contracts-table th:first-child,.contracts-table td:first-child{position:sticky;left:0;z-index:3;background:inherit;box-shadow:2px 0 4px rgba(2,27,70,.06)}
+.contracts-table thead th:first-child{z-index:5;background:#003b7a!important;color:#fff!important;}
 
-.contract-risk-stack{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:112px}.contract-risk-days{font-size:.75rem;font-weight:900;color:#0a2450;white-space:nowrap}.contract-risk-chip{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:.78rem;line-height:1.15;white-space:nowrap}.contract-risk-chip--critico{background:#d71920!important;color:#fff!important;border:1px solid #a30f16!important}.contract-risk-chip--atencao{background:#ffd200!important;color:#4a3a00!important;border:1px solid #d4a900!important}.contract-risk-chip--normal{background:#003b7a!important;color:#fff!important;border:1px solid #00265f!important}.contract-risk-chip--sem-data{background:#e5e7eb!important;color:#374151!important;border:1px solid #cbd5e1!important}.contract-row--vencido td,.contract-row--ate-90 td{background:#fff1f2!important}.contract-row--ate-150 td{background:#fffbeb!important}.contract-row--regular td{background:#f8fbff!important}@media(max-width:992px){.cabw-chart-grid{grid-template-columns:1fr}}
-</style>
-<main class="container-fluid mt-4 contract-detail-page"><a href="contratos.html" class="contract-back-link"><i class="bi bi-arrow-left"></i> Voltar para Contratos</a><header class="contract-panel-hero" aria-labelledby="contract-section-title"><span class="contract-menu-card__icon contract-section-card__icon"><i class="bi bi-folder2-open"></i></span><div><span class="contracts-eyebrow">Painel de contratos</span><h1 id="contract-section-title">Contratos Administrativos</h1><p>Contratos cujo Grande Comando é CW.</p></div></header><section class="contracts-kpi-grid" aria-label="Indicadores do painel"><article class="contracts-kpi"><span>Contratos</span><strong data-kpi="count">—</strong></article><article class="contracts-kpi"><span>Valor contratado</span><strong data-kpi="value">—</strong></article><article class="contracts-kpi"><span>Total empenhado USD</span><strong data-kpi="paidUsd">—</strong></article><article class="contracts-kpi"><span>Total faturado USD</span><strong data-kpi="billedUsd">—</strong></article></section><section class="contracts-workbench" aria-label="Filtros de contratos"><div class="contracts-filter-header"><div><h2>Filtros</h2><p>Clique no campo para abrir a lista e marque uma ou mais opções. É possível selecionar várias opções por filtro.</p></div><div class="contracts-filter-actions"><button type="button" class="contracts-reset-button" id="resetContractFilters"><i class="bi bi-arrow-counterclockwise"></i> Limpar filtros</button></div></div><div class="contracts-filter-grid"><label class="contracts-field" for="filterEmpresa"><span>Empresa</span><select id="filterEmpresa"></select></label><label class="contracts-field" for="filterNumeroContrato"><span>Número de contrato</span><select id="filterNumeroContrato"></select></label><label class="contracts-field" for="filterUnidade"><span>Unidade</span><select id="filterUnidade"></select></label><label class="contracts-field" for="filterGrandeComando"><span>Grande Comando</span><select id="filterGrandeComando"></select></label><label class="contracts-field" for="filterOrdenador"><span>Ordenação de Despesas</span><select id="filterOrdenador"></select></label><label class="contracts-field" for="filterAcao"><span>Ação</span><select id="filterAcao"></select></label><label class="contracts-field" for="filterMoeda"><span>Moeda</span><select id="filterMoeda"></select></label><label class="contracts-field" for="filterStatus"><span>Vigência</span><select id="filterStatus"></select></label><label class="contracts-field" for="filterValueRange"><span>Valor total do contrato</span><select id="filterValueRange"></select></label><label class="contracts-field contracts-field--wide" for="filterContratoSearch"><span>Busca geral</span><input id="filterContratoSearch" type="search" placeholder="Contrato, número, empresa, objeto, unidade..."></label></div><aside class="cabw-report-panel" aria-label="Geração de relatórios"><div><span class="cabw-report-panel__icon"><i class="bi bi-file-earmark-pdf"></i></span><h2>Relatórios</h2><p>Gere um relatório profissional com os contratos filtrados, indicadores, gráfico de valores e tabela detalhada. O arquivo poderá ser salvo em PDF pela janela de impressão.</p></div><button type="button" class="cabw-report-button" id="generateContractsReport"><i class="bi bi-printer"></i> Gerar relatório</button></aside></section><section class="contracts-table-card" aria-label="Gráfico de valores"><div class="contracts-table-toolbar"><h2>Valores dos contratos</h2><span>Valor contratado, empenhado, faturado, saldo empenhado a faturar e disponível para empenho</span></div><div id="contractsValueChart" style="min-height:360px"></div></section><section class="contracts-table-card" aria-label="Tabela de contratos"><div class="contracts-table-toolbar"><h2>Contratos filtrados</h2><span id="contractsTableCount">0 contrato(s) · ordenados por vencimento mais próximo</span></div><div class="contracts-table-wrap"><table class="contracts-table" id="contractsTable"><thead><tr><th>Risco / prazo</th><th>Contrato</th><th>Número</th><th>Unidade</th><th>Ordenação</th><th>Grande Comando</th><th>Empresa</th><th>Objeto</th><th>Moeda</th><th>Valor</th><th>Empenhado USD</th><th>Faturado USD</th><th>Disp. empenho</th><th>Fim vigência</th><th>Situação</th></tr></thead><tbody></tbody></table></div></section><section class="contracts-table-card contract-po-card" id="contractPoDetails" style="display:none" aria-label="Detalhamento por PO"></section></main>
-<script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script>
-<script src="contracts-data.js"></script>
-<script src="contracts-panel.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+.contracts-table tbody tr.contract-row--regular td{background:rgba(0,59,122,.045)!important;border-bottom-color:rgba(0,59,122,.10)!important;}
 
-<script id="cabw-generic-report-generator">
-(function(){
-  if(window.__cabwGenericReportInstalled) return; window.__cabwGenericReportInstalled = true;
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-  async function chartImages(){
-    var charts = Array.from(document.querySelectorAll('.js-plotly-plot'));
-    var html = '';
-    for(var i=0;i<charts.length;i++){
-      var gd = charts[i];
-      var title = (gd.closest('.cabw-chart-card,.contracts-table-card') || gd).querySelector('h2')?.textContent || gd.id || ('Gráfico '+(i+1));
-      try{
-        if(window.Plotly && gd.data){
-          var url = await Plotly.toImage(gd, {format:'png', width:1100, height:520, scale:1});
-          html += '<section class="r-section"><h2>'+esc(title)+'</h2><img class="r-chart" src="'+url+'"></section>';
-        }
-      }catch(e){}
-    }
-    return html;
-  }
-  function getFilters(){
-    var blocks = [];
-    document.querySelectorAll('.cabw-multi-select').forEach(function(ms){
-      var label = ms.closest('label')?.querySelector('span')?.textContent || 'Filtro';
-      var val = ms.querySelector('.cabw-multi-text')?.textContent || ms.textContent || '';
-      blocks.push('<strong>'+esc(label)+':</strong> '+esc(val));
-    });
-    document.querySelectorAll('select,input[type="search"]').forEach(function(el){
-      if(el.closest('.cabw-multi-select')) return;
-      var label = el.closest('label')?.querySelector('span')?.textContent || el.id || 'Filtro';
-      var val = el.value || 'Todos';
-      blocks.push('<strong>'+esc(label)+':</strong> '+esc(val));
-    });
-    return blocks.length ? '<p class="r-filter">'+blocks.join(' &nbsp; | &nbsp; ')+'</p>' : '<p class="r-filter">Sem filtros selecionados.</p>';
-  }
-  function kpis(){
-    var cards = Array.from(document.querySelectorAll('.detail-kpi-card,.contracts-kpi')).slice(0,12);
-    if(!cards.length) return '';
-    return '<section class="r-kpis">'+cards.map(function(c){
-      var name = c.querySelector('span')?.textContent || '';
-      var val = c.querySelector('strong')?.textContent || '';
-      return '<article><span>'+esc(name)+'</span><strong>'+esc(val)+'</strong></article>';
-    }).join('')+'</section>';
-  }
-  function tables(){
-    var html='';
-    document.querySelectorAll('main table').forEach(function(t, idx){
-      var clone = t.cloneNode(true);
-      clone.querySelectorAll('script,style').forEach(function(n){n.remove();});
-      html += '<section class="r-section"><h2>Tabela '+(idx+1)+'</h2><div class="r-table">'+clone.outerHTML+'</div></section>';
-    });
-    return html;
-  }
-  async function generate(titleOverride){
-    var title = titleOverride || document.querySelector('main h1,h1')?.textContent || document.title || 'Relatório';
-    var charts = await chartImages();
-    var html = '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css()+'</style>
-<style id="cabw-layout-final-fix">
-.table-responsive, .cabw-table-scroll, .contracts-table-wrap { max-height: 560px !important; overflow-x: auto !important; overflow-y: auto !important; width: 100% !important; }
-.table-responsive table, .cabw-table-scroll table, .contracts-table-wrap table { min-width: 980px !important; }
-.detail-workbench.cabw-filter-report-layout { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(310px, 370px) !important; gap: 24px !important; align-items: stretch !important; }
-.detail-workbench.cabw-filter-report-layout > .detail-workbench__panel { grid-column: 1 !important; min-width: 0 !important; }
-.detail-workbench.cabw-filter-report-layout > .cabw-report-panel { grid-column: 2 !important; align-self: stretch !important; height: auto !important; }
-.contracts-workbench { display: grid !important; grid-template-columns: minmax(0,1fr) minmax(310px,370px) !important; gap: 24px !important; align-items: stretch !important; }
-.contracts-workbench > .contracts-filter-header { grid-column: 1 !important; grid-row: 1 !important; }
-.contracts-workbench > .contracts-filter-grid { grid-column: 1 !important; grid-row: 2 !important; min-width: 0 !important; }
-.contracts-workbench > .cabw-report-panel { grid-column: 2 !important; grid-row: 1 / span 2 !important; align-self: stretch !important; }
-@media (max-width: 992px) { .detail-workbench.cabw-filter-report-layout, .contracts-workbench { grid-template-columns: 1fr !important; } .detail-workbench.cabw-filter-report-layout > .cabw-report-panel, .contracts-workbench > .cabw-report-panel { grid-column: 1 !important; grid-row: auto !important; } }
-</style>
 
-<style id="cabw-filter-chart-final-fix">
-/* Ajuste de leitura dos filtros: 2 a 3 campos por linha e dropdown amplo */
-.contracts-filter-grid{grid-template-columns:repeat(3,minmax(230px,1fr))!important;align-items:end!important;gap:16px!important;}
-.contracts-field--wide{grid-column:span 2!important;}
-.cabw-multi-menu{box-sizing:border-box!important;left:0!important;right:auto!important;width:max-content!important;min-width:min(440px,calc(100vw - 48px))!important;max-width:min(780px,calc(100vw - 48px))!important;overflow-x:auto!important;}
-.cabw-multi-dropdown.cabw-align-right .cabw-multi-menu{left:auto!important;right:0!important;}
-.cabw-multi-option span{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;}
-.cabw-multi-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;}
-.cabw-multi-actions button{width:100%!important;white-space:nowrap!important;}
-.cabw-multi-filter-line{grid-template-columns:minmax(160px,1fr) auto!important;}
-@media (max-width:1320px){.contracts-filter-grid{grid-template-columns:repeat(2,minmax(230px,1fr))!important;}.contracts-field--wide{grid-column:span 2!important;}}
-@media (max-width:768px){.contracts-filter-grid{grid-template-columns:1fr!important;}.contracts-field--wide{grid-column:auto!important;}.cabw-multi-menu{min-width:100%!important;max-width:calc(100vw - 32px)!important;}}
-</style>
-</head><body>'+
-      '<header><div class="ministry">Ministério da Defesa<br>Comando da Aeronáutica<br>Comissão Aeronáutica Brasileira em Washington</div><h1>'+esc(title)+'</h1><p class="intro">Relatório gerencial elaborado a partir dos dados atualmente filtrados no painel. Os indicadores, gráficos e tabelas abaixo refletem a seleção vigente no momento da geração.</p>'+getFilters()+'</header>'+kpis()+charts+tables()+'<footer>Gerado em '+new Date().toLocaleString('pt-BR')+'</footer></body></html>';
-    var w = window.open('', '_blank');
-    if(!w){ alert('Permita pop-ups para gerar o relatório.'); return; }
-    w.document.open(); w.document.write(html); w.document.close();
-    setTimeout(function(){ try{w.focus(); w.print();}catch(e){} }, 700);
-  }
-  function css(){ return 'body{font-family:Arial,Helvetica,sans-serif;color:#10233f;margin:34px;line-height:1.42}.ministry{text-align:center;font-weight:700;margin-bottom:22px}h1{text-align:center;color:#00265f;margin:12px 0 22px}.intro{text-align:justify;font-size:14px}.r-filter{background:#eef3fa;border-left:5px solid #ffd200;padding:12px 14px;border-radius:8px;text-align:justify}.r-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.r-kpis article{border:1px solid #dbe4f0;border-radius:12px;padding:14px;background:#fff}.r-kpis span{display:block;font-size:12px;color:#52657f}.r-kpis strong{display:block;color:#00265f;font-size:20px;margin-top:6px}.r-section{page-break-inside:avoid;margin-top:26px}.r-section h2{color:#00265f;border-bottom:2px solid #ffd200;padding-bottom:6px}.r-chart{width:100%;max-height:520px;object-fit:contain}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#003b7a;color:#fff}td,th{border:1px solid #cdd6e4;padding:5px;text-align:left}tr:nth-child(even) td{background:#f6f8fb}footer{text-align:center;margin-top:30px;color:#667}@media print{body{margin:18mm}.r-kpis{grid-template-columns:repeat(2,1fr)}}'; }
-  function bind(id, title){ var btn=document.getElementById(id); if(btn && !btn.__cabwReportBound){ btn.addEventListener('click', function(){generate(title)}); btn.__cabwReportBound=true; } }
-  document.addEventListener('DOMContentLoaded', function(){
-    bind('generateCreditReport','Relatório - Visão Executiva');
-    bind('generateContractsReport', document.querySelector('main h1')?.textContent || 'Relatório de Contratos');
-  });
-})();
-</script>
-
-</body>
-</html>
+/* Ajuste 17/07/2026: coluna de risco/prazo dos contratos */
+.contract-risk-stack{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:112px}.contract-risk-days{font-size:.75rem;font-weight:900;color:#0a2450;white-space:nowrap}.contract-risk-chip{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:.78rem;line-height:1.15;white-space:nowrap}.contract-risk-chip--critico{background:#d71920!important;color:#fff!important;border:1px solid #a30f16!important}.contract-risk-chip--atencao{background:#ffd200!important;color:#4a3a00!important;border:1px solid #d4a900!important}.contract-risk-chip--normal{background:#003b7a!important;color:#fff!important;border:1px solid #00265f!important}.contract-risk-chip--sem-data{background:#e5e7eb!important;color:#374151!important;border:1px solid #cbd5e1!important}.contract-row--vencido td,.contract-row--ate-90 td{background:#fff1f2!important}.contract-row--ate-150 td{background:#fffbeb!important}.contract-row--regular td{background:#f8fbff!important}

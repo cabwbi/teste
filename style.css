@@ -1871,3 +1871,38 @@ select.cabw-native-multi-hidden{display:none!important;}
 .cabw-multi-actions{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #e7edf6;margin-bottom:4px;padding:4px 4px 8px;position:sticky;top:0;background:#fff;z-index:1;}
 .cabw-multi-actions button{min-height:28px!important;width:auto!important;min-width:0!important;border:0;border-radius:8px;background:#e9eef6;color:#003b7a;font-weight:700;padding:5px 10px;font-size:12px;cursor:pointer;}
 
+
+/* CABW - melhoria da tabela de contratos por vencimento */
+.contracts-table{min-width:1420px;}
+.contracts-table tbody tr.contract-row--vencido td{background:rgba(164,28,43,.12)!important;border-bottom-color:rgba(164,28,43,.18)!important;}
+.contracts-table tbody tr.contract-row--ate-90 td{background:rgba(185,28,28,.10)!important;border-bottom-color:rgba(185,28,28,.22)!important;}
+.contracts-table tbody tr.contract-row--ate-150 td{background:rgba(255,210,0,.16)!important;border-bottom-color:rgba(212,169,0,.24)!important;}
+.contracts-table tbody tr.contract-row--sem-data td{background:rgba(108,117,125,.08)!important;}
+.contract-due-badge,.contract-status-pill,.contract-gc-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-weight:800;line-height:1.15;white-space:nowrap;}
+.contract-due-badge{min-width:104px;padding:6px 10px;font-size:.78rem;border:1px solid transparent;}
+.contract-status-pill{padding:6px 10px;font-size:.76rem;border:1px solid transparent;}
+.contract-gc-chip{min-width:44px;padding:5px 9px;font-size:.78rem;background:#eef3fa;color:#003b7a;border:1px solid #cdd8e8;}
+.contract-due-badge--vencido,.contract-status-pill--vencido{background:#a41c2b;color:#fff;border-color:#8f1825;}
+.contract-due-badge--ate-90,.contract-status-pill--ate-90{background:#ffd200;color:#003b7a;border-color:#e4bc00;}
+.contract-due-badge--ate-150,.contract-status-pill--ate-150{background:#fff2b8;color:#5c4700;border-color:#f0d76a;}
+.contract-due-badge--regular,.contract-status-pill--regular{background:#e8f6ef;color:#006d49;border-color:#bfe5d2;}
+.contract-due-badge--sem-data,.contract-status-pill--sem-data{background:#eef1f5;color:#52627a;border-color:#d8dee8;}
+.contract-date-cell{white-space:nowrap;font-weight:700;color:#0a2450;}
+.risk-flag{display:inline-flex!important;margin-left:.35rem;padding:.18rem .48rem;border-radius:999px;background:#003b7a!important;color:#fff!important;font-weight:800;font-size:.72rem;vertical-align:middle;white-space:nowrap;}
+.contracts-table thead th:nth-child(5),.contracts-table tbody td:nth-child(5){text-align:center;}
+
+
+/* CABW - coluna de risco de vencimento dos contratos */
+.contract-risk-chip{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:.78rem;line-height:1.15;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.contract-risk-chip--critico{background:#b91c1c!important;color:#fff!important;border:1px solid #991b1b!important;}
+.contract-risk-chip--atencao{background:#ffd200!important;color:#4a3a00!important;border:1px solid #d4a900!important;}
+.contract-risk-chip--normal{background:#003b7a!important;color:#fff!important;border:1px solid #00265f!important;}
+.contract-risk-chip--sem-data{background:#e5e7eb!important;color:#374151!important;border:1px solid #cbd5e1!important;}
+.contracts-table th:first-child,.contracts-table td:first-child{position:sticky;left:0;z-index:3;background:inherit;box-shadow:2px 0 4px rgba(2,27,70,.06)}
+.contracts-table thead th:first-child{z-index:5;background:#003b7a!important;color:#fff!important;}
+
+.contracts-table tbody tr.contract-row--regular td{background:rgba(0,59,122,.045)!important;border-bottom-color:rgba(0,59,122,.10)!important;}
+
+
+/* Ajuste 17/07/2026: coluna de risco/prazo dos contratos */
+.contract-risk-stack{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:112px}.contract-risk-days{font-size:.75rem;font-weight:900;color:#0a2450;white-space:nowrap}.contract-risk-chip{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:.78rem;line-height:1.15;white-space:nowrap}.contract-risk-chip--critico{background:#d71920!important;color:#fff!important;border:1px solid #a30f16!important}.contract-risk-chip--atencao{background:#ffd200!important;color:#4a3a00!important;border:1px solid #d4a900!important}.contract-risk-chip--normal{background:#003b7a!important;color:#fff!important;border:1px solid #00265f!important}.contract-risk-chip--sem-data{background:#e5e7eb!important;color:#374151!important;border:1px solid #cbd5e1!important}.contract-row--vencido td,.contract-row--ate-90 td{background:#fff1f2!important}.contract-row--ate-150 td{background:#fffbeb!important}.contract-row--regular td{background:#f8fbff!important}
