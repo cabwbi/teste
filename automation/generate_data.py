@@ -372,6 +372,33 @@ def main() -> None:
     for record in rp_records:
         copy = dict(record)
         copy["liquidacoes2026"] = copy.pop("_monthly")
+        # Projeta a baixa do valor inicialmente inscrito no mês da DPE de cada
+        # requisição vinculada. Datas fora do exercício são limitadas a janeiro
+        # ou dezembro; sem DPE, o valor fica em dezembro (hipótese conservadora).
+        initial_rp = money(copy["saldoAtualUsd"] + sum(copy["liquidacoes2026"]))
+        projection = [0.0] * 12
+        projection_reqs = []
+        for req_id in copy["requisicoes"]:
+            req = req_by_id.get(req_id, {})
+            dpe = req.get("DPE")
+            if isinstance(dpe, datetime):
+                dpe = dpe.date()
+            if isinstance(dpe, date):
+                month = 1 if dpe.year < current_year else (12 if dpe.year > current_year else dpe.month)
+                pending_qty = max(0.0, number(req.get("QTD")) - number(req.get("QTD REC")))
+                projection_reqs.append((month, pending_qty))
+        if not projection_reqs:
+            projection_reqs = [(12, 1.0)]
+        total_weight = sum(weight for _, weight in projection_reqs)
+        if total_weight <= 0:
+            projection_reqs = [(month, 1.0) for month, _ in projection_reqs]
+            total_weight = float(len(projection_reqs))
+        allocated = 0.0
+        for index, (month, weight) in enumerate(projection_reqs):
+            value = money(initial_rp - allocated) if index == len(projection_reqs) - 1 else money(initial_rp * weight / total_weight)
+            projection[month - 1] = money(projection[month - 1] + value)
+            allocated = money(allocated + value)
+        copy["projecaoDpe2026"] = projection
         evolution_items.append(copy)
     clean_records = [{k: v for k, v in r.items() if k != "_monthly"} for r in rp_records]
     resumo_ano = {}
@@ -381,7 +408,7 @@ def main() -> None:
         enrolled = money(actual + liquidated)
         resumo_ano[str(year)] = {"atual": actual, "liquidado": liquidated, "inscrito": enrolled, "percentualLiquidado": round(liquidated / enrolled * 100, 2) if enrolled else 0.0}
     actual_total, enrolled_total = summary_rp["totalSaldoUsd"], money(summary_rp["totalSaldoUsd"] + nl_total)
-    rp_data = {"summary": summary_rp, "records": clean_records, "nlEvents": nl_events, "topLiquidacoesMesAnterior": {"ano": previous_year, "mes": previous_month, "items": top_items}, "rpEvolution": {"currentYear": current_year, "maxMonth": max_month, "xMode": "inicio-jan-mais-meses-decorridos", "items": evolution_items, "resumoPorAno": resumo_ano, "resumoGeral": {"atual": actual_total, "liquidado": nl_total, "inscrito": enrolled_total, "percentualLiquidado": round(nl_total / enrolled_total * 100, 2) if enrolled_total else 0.0}, "totalLiquidacoes2026Usd": nl_total, "fonte": "NL_requisicao.xlsx", "criterio": "saldo inscrito reconstruído por saldo atual da PO + liquidações 2026 registradas na NL_requisicao.xlsx"}}
+    rp_data = {"summary": summary_rp, "records": clean_records, "nlEvents": nl_events, "topLiquidacoesMesAnterior": {"ano": previous_year, "mes": previous_month, "items": top_items}, "rpEvolution": {"currentYear": current_year, "maxMonth": max_month, "xMode": "inicio-jan-mais-meses-decorridos", "items": evolution_items, "resumoPorAno": resumo_ano, "resumoGeral": {"atual": actual_total, "liquidado": nl_total, "inscrito": enrolled_total, "percentualLiquidado": round(nl_total / enrolled_total * 100, 2) if enrolled_total else 0.0}, "totalLiquidacoes2026Usd": nl_total, "fonte": "NL_requisicao.xlsx", "criterio": "saldo inscrito reconstruído por saldo atual da PO + liquidações 2026 registradas na NL_requisicao.xlsx", "criterioProjecaoDpe": "valor inicialmente inscrito distribuído pela DPE das requisições vinculadas, ponderado pela quantidade pendente; datas fora do exercício limitadas a janeiro/dezembro e ausência de DPE projetada em dezembro"}}
 
     outputs = {
         "contracts-data.js": js("window.CABW_CONTRACTS_DATA = ", contract_data),

@@ -70,6 +70,21 @@ def main() -> None:
     liquidated = sum(sum(x["liquidacoes2026"]) for x in evolution["items"])
     assert close(liquidated, evolution["totalLiquidacoes2026Usd"])
     assert close(evolution["resumoGeral"]["inscrito"], evolution["resumoGeral"]["atual"] + evolution["resumoGeral"]["liquidado"])
+    dpe_monthly = [0.0] * 12
+    for item in evolution["items"]:
+        projection = item.get("projecaoDpe2026")
+        assert isinstance(projection, list) and len(projection) == 12, f"Projeção DPE inválida: {item['po']}"
+        expected = item["saldoAtualUsd"] + sum(item["liquidacoes2026"])
+        assert close(sum(projection), expected), f"Total da projeção DPE divergente: {item['po']}"
+        for month, value in enumerate(projection):
+            dpe_monthly[month] += value
+    assert any(value > 0.005 for value in dpe_monthly), "Projeção DPE sem valores"
+    projected_balance = evolution["resumoGeral"]["inscrito"]
+    dpe_balances = [projected_balance]
+    for value in dpe_monthly:
+        projected_balance = max(0.0, projected_balance - value)
+        dpe_balances.append(projected_balance)
+    assert len({round(value, 2) for value in dpe_balances}) > 1, "Projeção DPE constante"
     for name in PREFIXES:
         subprocess.run(["node", "--check", str(args.repo / name)], check=True, capture_output=True)
     for name in ("contracts-summary.json", "credit-current.json", "credit-10062026.json", "credit-11062026.json"):
@@ -82,7 +97,7 @@ def main() -> None:
         f"- Ordens de compra do ano: {len(credit['pos'])}.",
         f"- Registros de RP: {len(rp['records'])}; saldo: US$ {rp['summary']['totalSaldoUsd']:,.2f}.",
         f"- Suprimentos de fundos: {len(sf['orders'])}.",
-        "- Integridade: schemas, totais, reconstrução de RP, classificações, JSON/JavaScript, espelhos e allowlist aprovados.",
+        "- Integridade: schemas, totais, reconstrução e projeção DPE de RP, classificações, JSON/JavaScript, espelhos e allowlist aprovados.",
     ]
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text("\n".join(report) + "\n", encoding="utf-8")
