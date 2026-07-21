@@ -19,6 +19,24 @@ MIRRORS = {
     "contracts-summary.json": "assets/data/contracts-summary.json", "credit-current.json": "assets/data/credit-current.json",
     "credit-10062026.json": "assets/data/credit-10062026.json", "credit-11062026.json": "assets/data/credit-11062026.json",
 }
+PANEL_SCRIPTS = (
+    "contracts-panel.js", "assets/js/contracts-panel.js",
+    "credit-panel.js", "assets/js/credit-panel.js",
+    "rp-panel.js", "assets/js/rp-panel.js", "suprimento-fundos.js",
+)
+HTML_SCRIPT_CHAINS = {
+    "contratos.html": ("contracts-data.js", "contracts-panel.js"),
+    "contratos-administrativos.html": ("contracts-data.js", "contracts-panel.js"),
+    "contratos-finalisticos.html": ("contracts-data.js", "contracts-panel.js"),
+    "fms.html": ("contracts-data.js", "contracts-panel.js"),
+    "credito.html": ("credit-data.js", "credit-panel.js"),
+    "action.html": ("credit-data.js", "credit-panel.js"),
+    "consistency.html": ("credit-data.js", "credit-panel.js"),
+    "detail.html": ("credit-data.js", "credit-panel.js"),
+    "ug.html": ("credit-data.js", "credit-panel.js"),
+    "governanca-rp.html": ("rp-data.js", "rp-panel.js"),
+    "suprimento-fundos.html": ("suprimento-data.js", "suprimento-fundos.js"),
+}
 
 
 def load_js(path: Path, prefix: str):
@@ -55,6 +73,8 @@ def main() -> None:
     rp = data["rp-data.js"]
     sf = data["suprimento-data.js"]
     assert contracts["contracts"] and credit["digits"] and credit["pos"] and rp["records"] and sf["orders"]
+    assert contracts.get("records") == contracts["contracts"], "Alias records incompatível com contracts"
+    assert contracts.get("data") == contracts["contracts"], "Alias data incompatível com contracts"
     assert contracts["summary"]["total"] == len(contracts["contracts"])
     assert sum(contracts["summary"]["counts"].values()) == len(contracts["contracts"])
     for record in contracts["contracts"]:
@@ -87,6 +107,18 @@ def main() -> None:
     assert len({round(value, 2) for value in dpe_balances}) > 1, "Projeção DPE constante"
     for name in PREFIXES:
         subprocess.run(["node", "--check", str(args.repo / name)], check=True, capture_output=True)
+    for name in PANEL_SCRIPTS:
+        subprocess.run(["node", "--check", str(args.repo / name)], check=True, capture_output=True)
+    panel_source = (args.repo / "contracts-panel.js").read_text(encoding="utf-8")
+    assert "root.records,root.contracts,root.data" in panel_source, "Painel sem fallback compatível da coleção de contratos"
+    for html_name, scripts in HTML_SCRIPT_CHAINS.items():
+        html = (args.repo / html_name).read_text(encoding="utf-8")
+        positions = []
+        for script in scripts:
+            marker = f'src="{script}"'
+            assert marker in html, f"Script obrigatório ausente em {html_name}: {script}"
+            positions.append(html.index(marker))
+        assert positions == sorted(positions), f"Ordem de scripts inválida em {html_name}: dados devem preceder o painel"
     for name in ("contracts-summary.json", "credit-current.json", "credit-10062026.json", "credit-11062026.json"):
         json.loads((args.repo / name).read_text(encoding="utf-8"))
     status = "sem alteração de dados" if not changed else f"{len(changed)} arquivo(s) de dados alterado(s)"

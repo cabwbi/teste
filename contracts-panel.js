@@ -1,7 +1,11 @@
 
 (function(){
 'use strict';
-const root=window.CABW_CONTRACTS_DATA||{records:[],summary:{}}; const records=Array.isArray(root.records)?root.records:[]; const summary=root.summary||{};
+const root=window.CABW_CONTRACTS_DATA||{records:[],summary:{}};
+// Compatibilidade entre versões do gerador: a coleção já foi publicada como
+// `records`, `contracts` e `data`. Aceitar os três formatos impede que uma
+// atualização exclusivamente de dados zere os painéis existentes.
+const records=[root.records,root.contracts,root.data].find(Array.isArray)||[]; const summary=root.summary||{};
 const $=(s,c)=> (c||document).querySelector(s); const $all=(s,c)=>Array.from((c||document).querySelectorAll(s));
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const money=v=>'US$ '+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
