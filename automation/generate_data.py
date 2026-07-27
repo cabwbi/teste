@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from openpyxl import load_workbook
+import xlrd
 
 EXPECTED_SCHEMAS = {
     "NL_requisicao.xlsx": (1, {"REQUISIÇÃO", "FATURA", "PO", "VALOR PAGO NO PEDIDO", "DATA"}),
@@ -50,6 +51,23 @@ def iso(value: Any) -> str:
 
 
 def workbook_rows(path: Path, header_row: int) -> tuple[list[dict[str, Any]], datetime | None]:
+    if path.suffix.lower() == ".xls":
+        wb = xlrd.open_workbook(path, on_demand=True)
+        ws = wb.sheet_by_index(0)
+        headers = [text(ws.cell_value(header_row - 1, col)) for col in range(ws.ncols)]
+        rows = []
+        for row_index in range(header_row, ws.nrows):
+            values = []
+            for col in range(ws.ncols):
+                cell = ws.cell(row_index, col)
+                value = cell.value
+                if cell.ctype == xlrd.XL_CELL_DATE:
+                    value = xlrd.xldate.xldate_as_datetime(value, wb.datemode)
+                values.append(value)
+            if any(value not in (None, "") for value in values):
+                rows.append(dict(zip(headers, values)))
+        wb.release_resources()
+        return rows, None
     wb = load_workbook(path, read_only=True, data_only=True)
     modified = wb.properties.modified
     ws = wb.active
@@ -96,7 +114,11 @@ def main() -> None:
     for name, (header_row, required) in EXPECTED_SCHEMAS.items():
         path = args.inputs / name
         if not path.is_file():
-            raise SystemExit(f"Planilha obrigatória ausente: {name}")
+            legacy = args.inputs / f"{Path(name).stem}.xls"
+            if legacy.is_file():
+                path = legacy
+            else:
+                raise SystemExit(f"Planilha obrigatória ausente: {Path(name).stem}.xls/.xlsx")
         rows, stamp = workbook_rows(path, header_row)
         columns = set(rows[0]) if rows else set()
         absent = sorted(required - columns)
@@ -105,8 +127,15 @@ def main() -> None:
         tables[name] = rows
         if stamp:
             modified.append(stamp.replace(tzinfo=None))
-    generated_at = max(modified).strftime("%Y-%m-%d %H:%M:%S") if modified else "1970-01-01 00:00:00"
-    as_of = max(modified).date() if modified else date(1970, 1, 1)
+    manifest_path = args.inputs / "input_manifest.json"
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for item in manifest.get("files", []):
+            stamp = text(item.get("modifiedTime")).replace("Z", "+00:00")
+            if stamp:
+                modified.append(datetime.fromisoformat(stamp).replace(tzinfo=None))
+    generated_at = max(modified).strftime("%Y-%m-%d %H:%M:%S") if modified else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    as_of = max(modified).date() if modified else date.today()
 
     om_rows = tables["descricao_OM.xlsx"]
     om_lookup = {}

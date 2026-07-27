@@ -50,9 +50,16 @@ def main() -> None:
     response = session.get("https://www.googleapis.com/drive/v3/files", params=params, timeout=60)
     response.raise_for_status()
     files = response.json().get("files", [])
+    expected_by_stem = {Path(name).stem.lower(): name for name in EXPECTED}
     by_name: dict[str, list[dict]] = {}
     for item in files:
-        if item.get("name", "").lower().endswith(".xlsx"):
+        source = Path(item.get("name", ""))
+        if source.suffix.lower() not in {".xls", ".xlsx"}:
+            continue
+        canonical = expected_by_stem.get(source.stem.lower())
+        if canonical:
+            by_name.setdefault(canonical, []).append(item)
+        else:
             by_name.setdefault(item["name"], []).append(item)
     missing = sorted(set(EXPECTED) - set(by_name))
     extra = sorted(set(by_name) - set(EXPECTED))
@@ -62,7 +69,8 @@ def main() -> None:
     manifest = {"folderId": args.folder_id, "files": []}
     for name in EXPECTED:
         item = sorted(by_name[name], key=lambda x: x.get("modifiedTime", ""), reverse=True)[0]
-        target = args.output / name
+        source_suffix = Path(item["name"]).suffix.lower()
+        target = args.output / f"{Path(name).stem}{source_suffix}"
         with session.get(
             f"https://www.googleapis.com/drive/v3/files/{item['id']}",
             params={"alt": "media", "supportsAllDrives": "true"},
@@ -74,9 +82,16 @@ def main() -> None:
                 for block in download.iter_content(1024 * 1024):
                     if block:
                         handle.write(block)
-        if not target.read_bytes().startswith(b"PK"):
-            raise SystemExit(f"Arquivo baixado não é XLSX válido: {name}")
-        manifest["files"].append({k: item.get(k) for k in ("id", "name", "modifiedTime", "size", "md5Checksum")})
+        signature = target.read_bytes()[:8]
+        if source_suffix == ".xlsx" and not signature.startswith(b"PK"):
+            raise SystemExit(f"Arquivo não é XLSX válido: {item['name']}")
+        if source_suffix == ".xls" and not signature.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+            raise SystemExit(f"Arquivo não é XLS válido: {item['name']}")
+        manifest["files"].append({
+            **{k: item.get(k) for k in ("id", "name", "modifiedTime", "size", "md5Checksum")},
+            "canonicalName": name,
+            "downloadedAs": target.name,
+        })
     (args.output / "input_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
