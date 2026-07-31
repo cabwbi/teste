@@ -83,5 +83,3 @@ jobs:
       - name: Verificar GitHub Pages
         if: steps.changes.outputs.changed == 'true'
         run: python automation/verify_pages.py --repo "$GITHUB_WORKSPACE" --url "https://cabwbi.github.io/teste/"
-
-# Acionamento excepcional da atualização de dados em 31-07-2026.
