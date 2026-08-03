@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera exclusivamente os 16 arquivos de dados do SISCABW."""
+"""Regenera exclusivamente os arquivos de dados autorizados do SISCABW."""
 from __future__ import annotations
 
 import argparse
@@ -23,6 +23,16 @@ EXPECTED_SCHEMAS = {
     "ordem_de_compra.xlsx": (1, {"PO", "VERSAO", "DATA", "VAL TOT USD", "TOT FATUR USD", "SALDO USD", "PAG"}),
     "requisicoes.xlsx": (1, {"PEDIDO", "PRJ", "STATUS", "NUM OC", "QTD", "QTD REC", "NOMENCLATURA", "DPE"}),
     "volumes.xlsx": (1, {"VOLUME", "PEDIDO", "PAG", "MANIFESTO"}),
+}
+
+PANEL_SOURCES = {
+    "entrada": tuple(EXPECTED_SCHEMAS),
+    "contratos": ("controle_financeiro_contratos.xlsx", "ordem_de_compra.xlsx", "NL_requisicao.xlsx", "requisicoes.xlsx"),
+    "credito": ("digitos.xlsx", "ordem_de_compra.xlsx", "Ordem_de_compra_em_assinatura.xlsx", "descricao_OM.xlsx", "descricao_projetos.xlsx", "requisicoes.xlsx"),
+    "processos": ("requisicoes.xlsx", "volumes.xlsx", "ordem_de_compra.xlsx"),
+    "governanca": ("digitos.xlsx", "ordem_de_compra.xlsx", "requisicoes.xlsx", "descricao_OM.xlsx", "descricao_projetos.xlsx"),
+    "rp": ("ordem_de_compra.xlsx", "NL_requisicao.xlsx", "requisicoes.xlsx", "descricao_OM.xlsx", "controle_financeiro_contratos.xlsx"),
+    "suprimento": ("ordem_de_compra.xlsx", "digitos.xlsx", "descricao_OM.xlsx", "descricao_projetos.xlsx"),
 }
 
 
@@ -128,14 +138,24 @@ def main() -> None:
         if stamp:
             modified.append(stamp.replace(tzinfo=None))
     manifest_path = args.inputs / "input_manifest.json"
+    source_updates: dict[str, dict[str, str]] = {}
     if manifest_path.is_file():
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         for item in manifest.get("files", []):
-            stamp = text(item.get("modifiedTime")).replace("Z", "+00:00")
+            canonical = text(item.get("canonicalName"))
+            stamp_raw = text(item.get("modifiedTime"))
+            stamp = stamp_raw.replace("Z", "+00:00")
             if stamp:
                 modified.append(datetime.fromisoformat(stamp).replace(tzinfo=None))
+            if canonical:
+                source_updates[canonical] = {
+                    "arquivo": text(item.get("name")) or canonical,
+                    "atualizadoEm": stamp_raw,
+                }
     generated_at = max(modified).strftime("%Y-%m-%d %H:%M:%S") if modified else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     as_of = max(modified).date() if modified else date.today()
+    for canonical in EXPECTED_SCHEMAS:
+        source_updates.setdefault(canonical, {"arquivo": canonical, "atualizadoEm": generated_at})
 
     om_rows = tables["descricao_OM.xlsx"]
     om_lookup = {}
@@ -439,6 +459,15 @@ def main() -> None:
     actual_total, enrolled_total = summary_rp["totalSaldoUsd"], money(summary_rp["totalSaldoUsd"] + nl_total)
     rp_data = {"summary": summary_rp, "records": clean_records, "nlEvents": nl_events, "topLiquidacoesMesAnterior": {"ano": previous_year, "mes": previous_month, "items": top_items}, "rpEvolution": {"currentYear": current_year, "maxMonth": max_month, "xMode": "inicio-jan-mais-meses-decorridos", "items": evolution_items, "resumoPorAno": resumo_ano, "resumoGeral": {"atual": actual_total, "liquidado": nl_total, "inscrito": enrolled_total, "percentualLiquidado": round(nl_total / enrolled_total * 100, 2) if enrolled_total else 0.0}, "totalLiquidacoes2026Usd": nl_total, "fonte": "NL_requisicao.xlsx", "criterio": "saldo inscrito reconstruído por saldo atual da PO + liquidações 2026 registradas na NL_requisicao.xlsx", "criterioProjecaoDpe": "valor inicialmente inscrito distribuído pela DPE das requisições vinculadas, ponderado pela quantidade pendente; datas fora do exercício limitadas a janeiro/dezembro e ausência de DPE projetada em dezembro"}}
 
+    update_status = {
+        "geradoEm": generated_at,
+        "fusoHorarioExibicao": "America/New_York",
+        "paineis": {
+            panel: [source_updates[name] for name in sources]
+            for panel, sources in PANEL_SOURCES.items()
+        },
+    }
+
     outputs = {
         "contracts-data.js": js("window.CABW_CONTRACTS_DATA = ", contract_data),
         "credit-data.js": js("window.CABW_CREDIT_DATA = ", credit_data),
@@ -448,12 +477,14 @@ def main() -> None:
         "credit-current.json": json.dumps(credit_data, ensure_ascii=False, separators=(",", ":")) + "\n",
         "credit-10062026.json": json.dumps(credit_data, ensure_ascii=False, separators=(",", ":")) + "\n",
         "credit-11062026.json": json.dumps(credit_data, ensure_ascii=False, separators=(",", ":")) + "\n",
+        "data-update-status.json": json.dumps(update_status, ensure_ascii=False, indent=2) + "\n",
     }
     mirrors = {
         "contracts-data.js": "assets/js/contracts-data.js", "credit-data.js": "assets/js/credit-data.js",
         "rp-data.js": "assets/js/rp-data.js", "suprimento-data.js": "assets/js/suprimento-data.js",
         "contracts-summary.json": "assets/data/contracts-summary.json", "credit-current.json": "assets/data/credit-current.json",
         "credit-10062026.json": "assets/data/credit-10062026.json", "credit-11062026.json": "assets/data/credit-11062026.json",
+        "data-update-status.json": "assets/data/data-update-status.json",
     }
     for name, content in outputs.items():
         write(args.repo / name, content)

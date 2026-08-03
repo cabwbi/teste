@@ -14,3 +14,5 @@ credit-current.json
 credit-data.js
 rp-data.js
 suprimento-data.js
+assets/data/data-update-status.json
+data-update-status.json

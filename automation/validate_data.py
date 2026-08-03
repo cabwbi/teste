@@ -18,11 +18,18 @@ MIRRORS = {
     "rp-data.js": "assets/js/rp-data.js", "suprimento-data.js": "assets/js/suprimento-data.js",
     "contracts-summary.json": "assets/data/contracts-summary.json", "credit-current.json": "assets/data/credit-current.json",
     "credit-10062026.json": "assets/data/credit-10062026.json", "credit-11062026.json": "assets/data/credit-11062026.json",
+    "data-update-status.json": "assets/data/data-update-status.json",
 }
 PANEL_SCRIPTS = (
     "contracts-panel.js", "assets/js/contracts-panel.js",
     "credit-panel.js", "assets/js/credit-panel.js",
-    "rp-panel.js", "assets/js/rp-panel.js", "suprimento-fundos.js",
+    "rp-panel.js", "assets/js/rp-panel.js", "suprimento-fundos.js", "data-update-footer.js",
+)
+FOOTER_HTMLS = (
+    "index.html", "contratos.html", "contratos-administrativos.html", "contratos-finalisticos.html", "fms.html",
+    "credito.html", "action.html", "consistency.html", "detail.html", "ug.html", "processos.html",
+    "governanca.html", "governanca-cabw-numeros.html", "governanca-calendario.html", "governanca-paac.html",
+    "governanca-pta.html", "governanca-rp.html", "suprimento-fundos.html", "evolution.html",
 )
 HTML_SCRIPT_CHAINS = {
     "contratos.html": ("contracts-data.js", "contracts-panel.js"),
@@ -72,6 +79,11 @@ def main() -> None:
     credit = data["credit-data.js"]
     rp = data["rp-data.js"]
     sf = data["suprimento-data.js"]
+    update_status = json.loads((args.repo / "data-update-status.json").read_text(encoding="utf-8"))
+    assert set(("entrada", "contratos", "credito", "processos", "governanca", "rp", "suprimento")) <= set(update_status["paineis"])
+    for panel, sources in update_status["paineis"].items():
+        assert sources, f"Painel sem fontes de atualização: {panel}"
+        assert all(item.get("arquivo") and item.get("atualizadoEm") for item in sources), f"Fonte sem data: {panel}"
     assert contracts["contracts"] and credit["digits"] and credit["pos"] and rp["records"] and sf["orders"]
     assert contracts.get("records") == contracts["contracts"], "Alias records incompatível com contracts"
     assert contracts.get("data") == contracts["contracts"], "Alias data incompatível com contracts"
@@ -119,7 +131,10 @@ def main() -> None:
             assert marker in html, f"Script obrigatório ausente em {html_name}: {script}"
             positions.append(html.index(marker))
         assert positions == sorted(positions), f"Ordem de scripts inválida em {html_name}: dados devem preceder o painel"
-    for name in ("contracts-summary.json", "credit-current.json", "credit-10062026.json", "credit-11062026.json"):
+    for html_name in FOOTER_HTMLS:
+        html = (args.repo / html_name).read_text(encoding="utf-8")
+        assert 'src="data-update-footer.js"' in html, f"Rodapé de atualização ausente em {html_name}"
+    for name in ("contracts-summary.json", "credit-current.json", "credit-10062026.json", "credit-11062026.json", "data-update-status.json"):
         json.loads((args.repo / name).read_text(encoding="utf-8"))
     status = "sem alteração de dados" if not changed else f"{len(changed)} arquivo(s) de dados alterado(s)"
     report = [
@@ -129,7 +144,7 @@ def main() -> None:
         f"- Ordens de compra do ano: {len(credit['pos'])}.",
         f"- Registros de RP: {len(rp['records'])}; saldo: US$ {rp['summary']['totalSaldoUsd']:,.2f}.",
         f"- Suprimentos de fundos: {len(sf['orders'])}.",
-        "- Integridade: schemas, totais, reconstrução e projeção DPE de RP, classificações, JSON/JavaScript, espelhos e allowlist aprovados.",
+        "- Integridade: schemas, totais, reconstrução e projeção DPE de RP, classificações, datas das fontes, rodapés, JSON/JavaScript, espelhos e allowlist aprovados.",
     ]
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text("\n".join(report) + "\n", encoding="utf-8")

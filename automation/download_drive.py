@@ -22,6 +22,9 @@ EXPECTED = (
     "descricao_projetos.xlsx",
 )
 SCOPES = ("https://www.googleapis.com/auth/drive.readonly",)
+STEM_ALIASES = {
+    "ordem_de_compras": "ordem_de_compra.xlsx",
+}
 
 
 def main() -> None:
@@ -56,7 +59,7 @@ def main() -> None:
         source = Path(item.get("name", ""))
         if source.suffix.lower() not in {".xls", ".xlsx"}:
             continue
-        canonical = expected_by_stem.get(source.stem.lower())
+        canonical = expected_by_stem.get(source.stem.lower()) or STEM_ALIASES.get(source.stem.lower())
         if canonical:
             by_name.setdefault(canonical, []).append(item)
         else:
