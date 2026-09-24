@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR" class="cabw-auth-pending">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Painel CABW - Requisições de Reparo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="processos-bi.css?v=20260827-kpi-filtros-v3">
+  <script src="auth.js?v=auth-cabw-2026"></script>
+</head>
+<body class="processos-bi-page" data-process-page="repairs">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <a class="navbar-brand" href="index.html">Painel CABW</a>
+    <img src="cabw_logo.png" alt="Brasão da Comissão Aeronáutica Brasileira em Washington" class="header-logo">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Início</a></li>
+        <li class="nav-item"><a class="nav-link" href="credito-menu.html">Gestão de Crédito</a></li>
+        <li class="nav-item"><a class="nav-link" href="contratos.html">Contratos</a></li>
+        <li class="nav-item active"><a class="nav-link" href="processos.html" aria-current="page">Requisições</a></li>
+        <li class="nav-item"><a class="nav-link" href="governanca.html">Governança e ARC</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://camaraajcv.github.io/cabw-pagamentos./" target="_blank" rel="noopener noreferrer" aria-label="Abrir Indicadores Financeiros em nova janela"><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>Finanças</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="suprimento-fundos.html">Suprimento de Fundos</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="proc-panel-hero">
+    <div class="proc-panel-hero__toolbar">
+      <a class="proc-back" href="processos.html"><i class="bi bi-arrow-left"></i> Voltar para Processos de Contratação</a>
+      <button class="proc-report-button" id="procGenerateReport" type="button"><i class="bi bi-file-earmark-pdf"></i> Gerar relatório PDF</button>
+    </div>
+    <p class="proc-eyebrow">ComprAer · Serviços de reparo</p>
+    <h1>Requisições de Reparo</h1>
+    <p class="proc-hero-description">Painel desenvolvido para acompanhamento das requisições de reparo.</p>
+    <span class="proc-source-chip"><i class="bi bi-database-check"></i><span id="procGeneratedAt">Carregando data dos dados…</span></span>
+  </header>
+
+  <main class="proc-dashboard">
+    <section class="proc-section proc-filter-section" aria-labelledby="filtersTitle">
+      <div class="proc-section-heading">
+        <div><h2 id="filtersTitle">Filtros de análise</h2><p>Combine dimensões analíticas e etapas do fluxo logístico. Filtros vazios consideram todo o escopo.</p></div>
+        <div class="proc-filter-actions"><button class="proc-action" id="procResetFilters" type="button"><i class="bi bi-arrow-counterclockwise"></i> Limpar filtros</button></div>
+      </div>
+      <div class="proc-filter-split">
+        <section class="proc-filter-panel proc-filter-panel--analytical" aria-labelledby="analyticalFiltersTitle">
+          <div class="proc-filter-panel__heading"><span class="proc-filter-panel__icon"><i class="bi bi-sliders"></i></span><div><h3 id="analyticalFiltersTitle">Filtro analítico</h3><p>Selecione uma ou mais opções em cada dimensão.</p></div></div>
+          <div class="proc-filter-grid">
+            <label class="proc-filter-field"><span>OM Requisitante</span><select multiple data-filter="om"></select></label>
+            <label class="proc-filter-field"><span>Projeto</span><select multiple data-filter="projetoLabel"></select></label>
+            <label class="proc-filter-field"><span>Ano</span><select multiple data-filter="anoAbertura"></select></label>
+            <label class="proc-filter-field"><span>Faixa de Valor</span><select multiple data-filter="faixaValor"></select></label>
+            <label class="proc-filter-field"><span>Grande Comando</span><select multiple data-filter="grandeComando"></select></label>
+            <label class="proc-filter-field"><span>Empresa vencedora</span><select multiple data-filter="empresaVencedora"></select></label>
+            <label class="proc-filter-field"><span>Empresa fabricante</span><select multiple data-filter="empresaFabricante"></select></label>
+            <label class="proc-filter-field"><span>Descrição do item</span><select multiple data-filter="descricao"></select></label>
+            <label class="proc-filter-field"><span>Part Number</span><select multiple data-filter="partNumber"></select></label>
+            <label class="proc-filter-field"><span>Número da requisição</span><select multiple data-filter="requisicao"></select></label>
+            <label class="proc-filter-field"><span>Número do certame SILOMS</span><select multiple data-filter="certame"></select></label>
+            <label class="proc-filter-field"><span>Situação da requisição</span><select multiple data-filter="status"></select></label>
+            <label class="proc-filter-field"><span>Número da ordem de compra</span><select multiple data-filter="po"></select></label>
+            <label class="proc-filter-field"><span>Situação de retorno do item</span><select multiple data-filter="situacaoRetorno"></select></label>
+            <label class="proc-filter-field"><span>Situação do reparável</span><select multiple data-filter="situacaoReparavel"></select></label>
+          </div>
+        </section>
+        <section class="proc-filter-panel proc-filter-panel--logistics" aria-labelledby="logisticsFiltersTitle">
+          <div class="proc-flow-eyebrow">Status real convertido em etapa visual</div>
+          <div class="proc-filter-panel__heading"><span class="proc-filter-panel__icon"><i class="bi bi-signpost-split"></i></span><div><h3 id="logisticsFiltersTitle">Fluxo logístico dos reparáveis</h3><p>Clique em uma ou mais etapas para filtrar as requisições conforme a localização do material.</p></div><span class="proc-filter-panel__badge" id="procLogisticsStatus" aria-live="polite">Carregando fluxo…</span></div>
+          <div class="proc-logistics-layout">
+            <div class="proc-flow-list" aria-label="Etapas do fluxo logístico">
+              <button class="proc-flow-step" type="button" data-logistics-stage="not-committed" aria-pressed="false"><span class="proc-flow-step__index"><i class="bi bi-file-earmark-text"></i></span><span class="proc-flow-step__label">Requisição de reparo não empenhada</span><span class="proc-flow-step__count" data-logistics-count>0</span></button>
+              <button class="proc-flow-step" type="button" data-logistics-stage="committed-transit" aria-pressed="false"><span class="proc-flow-step__index"><i class="bi bi-truck"></i></span><span class="proc-flow-step__label">Reparável no Brasil ou em trânsito para o Exterior</span><span class="proc-flow-step__count" data-logistics-count>0</span></button>
+              <button class="proc-flow-step" type="button" data-logistics-stage="dispatched-repairer" aria-pressed="false"><span class="proc-flow-step__index"><i class="bi bi-tools"></i></span><span class="proc-flow-step__label">Reparável expedido ao reparador</span><span class="proc-flow-step__count" data-logistics-count>0</span></button>
+              <button class="proc-flow-step" type="button" data-logistics-stage="received-cab" aria-pressed="false"><span class="proc-flow-step__index"><i class="bi bi-building-check"></i></span><span class="proc-flow-step__label">Reparável recebido no Depósito da CAB</span><span class="proc-flow-step__count" data-logistics-count>0</span></button>
+              <button class="proc-flow-step" type="button" data-logistics-stage="shipped-brazil" aria-pressed="false"><span class="proc-flow-step__index"><i class="bi bi-airplane"></i></span><span class="proc-flow-step__label">Reparável embarcado para o Brasil</span><span class="proc-flow-step__count" data-logistics-count>0</span></button>
+              <button class="proc-flow-step" type="button" data-logistics-stage="received-requester" aria-pressed="false"><span class="proc-flow-step__index"><i class="bi bi-geo-alt"></i></span><span class="proc-flow-step__label">Reparável recebido no requisitante</span><span class="proc-flow-step__count" data-logistics-count>0</span></button>
+            </div>
+            <button class="proc-flow-exception" type="button" data-logistics-stage="exceptions" aria-pressed="false"><span class="proc-flow-exception__icon"><i class="bi bi-exclamation-triangle"></i></span><strong>Ocorrências fora do fluxo</strong><span>Canceladas, suspensas ou recebidas parcialmente</span><b data-logistics-count>0</b></button>
+          </div>
+          <p class="proc-flow-selection" id="procLogisticsSelection">Todas as etapas do fluxo consideradas</p>
+          <noscript><p class="proc-flow-warning">O JavaScript precisa estar habilitado para utilizar o filtro do fluxo logístico.</p></noscript>
+        </section>
+      </div>
+    </section>
+
+    <section class="proc-kpi-grid proc-kpi-grid--repair" id="procKpis" aria-label="Indicadores macro"></section>
+
+    <section class="proc-section" aria-labelledby="chartsTitle">
+      <div class="proc-section-heading"><div><h2 id="chartsTitle">Visão gerencial</h2><p id="procFilteredTotal">Carregando requisições…</p></div></div>
+      <div class="proc-chart-grid">
+        <article class="proc-chart-card"><h3>Valores por OM requisitante</h3><p>Valor total empenhado das requisições</p><div class="proc-chart" id="chartValorOm"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por OM requisitante</h3><p>Número de requisições</p><div class="proc-chart" id="chartQtdOm"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por empresa vencedora</h3><p>Número de requisições</p><div class="proc-chart" id="chartQtdEmpresa"></div></article>
+        <article class="proc-chart-card"><h3>Valores por empresa vencedora</h3><p>Valor total empenhado das requisições</p><div class="proc-chart" id="chartValorEmpresa"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por projeto</h3><p>Número de requisições</p><div class="proc-chart" id="chartQtdProjeto"></div></article>
+        <article class="proc-chart-card"><h3>Valores por projeto</h3><p>Valor total empenhado das requisições</p><div class="proc-chart" id="chartValorProjeto"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por situação</h3><p>Número de requisições por situação da requisição</p><div class="proc-chart" id="chartQtdSituacao"></div></article>
+        <article class="proc-chart-card"><h3>Valores por situação</h3><p>Valor total empenhado por situação da requisição</p><div class="proc-chart" id="chartValorSituacao"></div></article>
+        <article class="proc-chart-card proc-chart-card--wide"><h3>Condição de retorno por empresa vencedora</h3><p>Distribuição percentual das requisições BER, BPR, AS IS, reparadas, em processo e demais condições; o total de requisições aparece à direita e o valor das OCs no detalhamento da barra</p><div class="proc-chart" id="chartRetornoEmpresa"></div></article>
+      </div>
+    </section>
+
+    <section class="proc-section" aria-labelledby="tableTitle">
+      <div class="proc-section-heading"><div><h2 id="tableTitle">Requisições filtradas</h2><p>Detalhamento das requisições, retorno dos materiais e ordens de compra associadas</p></div></div>
+      <div class="proc-table-wrap">
+        <table class="proc-table">
+          <thead><tr><th>Requisição</th><th>Certame</th><th>Descrição</th><th>Quantidade</th><th>Fabricante</th><th>Empresa vencedora</th><th>Ordem de compra</th><th>Valor empenhado</th><th>Saldo da PO</th><th>Situação</th><th>DPE</th><th>Retorno</th><th>Situação do reparável</th><th>Tempo desde a expedição</th></tr></thead>
+          <tbody id="procTableBody"></tbody>
+        </table>
+      </div>
+      <div class="proc-table-toolbar"><span class="proc-table-info" id="procTableInfo"></span><div class="proc-pagination"><button id="procPagePrev" type="button" aria-label="Página anterior">‹</button><span id="procPageCurrent">1 / 1</span><button id="procPageNext" type="button" aria-label="Próxima página">›</button></div></div>
+    </section>
+  </main>
+
+  <div class="proc-modal" id="repairDispatchModal" hidden>
+    <button class="proc-modal__backdrop" type="button" data-modal-close aria-label="Fechar detalhes"></button>
+    <section class="proc-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="repairDispatchTitle" aria-describedby="repairDispatchInfo">
+      <header class="proc-modal__header">
+        <div>
+          <p class="proc-modal__eyebrow">Acompanhamento de reparáveis</p>
+          <h2 id="repairDispatchTitle">Reparáveis expedidos ao fornecedor</h2>
+          <p id="repairDispatchInfo">Carregando requisições…</p>
+        </div>
+        <button class="proc-modal__close" id="repairDispatchClose" type="button" data-modal-close aria-label="Fechar janela"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="proc-age-legend" aria-label="Escala do tempo desde a expedição"><span>Menor tempo</span><i></i><span>Maior tempo</span></div>
+      <div class="proc-table-wrap proc-modal__table-wrap">
+        <table class="proc-table proc-modal__table">
+          <thead><tr><th>Requisição</th><th>Certame/Contrato</th><th>Descrição</th><th>Reparo aprovado</th><th>Valor da requisição</th><th>Empresa vencedora</th><th>Tempo desde a expedição</th><th>Observação da requisição</th></tr></thead>
+          <tbody id="repairDispatchBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="processos-data.js?v=20260827-kpi-filtros-v3"></script>
+  <script src="processos-panel.js?v=20260921-2"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

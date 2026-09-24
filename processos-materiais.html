@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR" class="cabw-auth-pending">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel CABW - Requisições de materiais e publicações</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="processos-bi.css">
+  <script src="auth.js?v=auth-cabw-2026"></script>
+</head>
+<body class="processos-bi-page" data-process-page="materials">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <a class="navbar-brand" href="index.html">Painel CABW</a>
+    <img src="cabw_logo.png" alt="Brasão da Comissão Aeronáutica Brasileira em Washington" class="header-logo">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Início</a></li>
+        <li class="nav-item"><a class="nav-link" href="credito-menu.html">Gestão de Crédito</a></li>
+        <li class="nav-item"><a class="nav-link" href="contratos.html">Contratos</a></li>
+        <li class="nav-item active"><a class="nav-link" href="processos.html" aria-current="page">Requisições</a></li>
+        <li class="nav-item"><a class="nav-link" href="governanca.html">Governança e ARC</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://camaraajcv.github.io/cabw-pagamentos./" target="_blank" rel="noopener noreferrer" aria-label="Abrir Indicadores Financeiros em nova janela"><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>Finanças</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="suprimento-fundos.html">Suprimento de Fundos</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="proc-panel-hero">
+    <div class="proc-panel-hero__toolbar">
+      <a class="proc-back" href="processos.html"><i class="bi bi-arrow-left"></i> Voltar para Processos de Contratação</a>
+      <button class="proc-report-button" id="procGenerateReport" type="button"><i class="bi bi-file-earmark-pdf"></i> Gerar relatório PDF</button>
+    </div>
+    <p class="proc-eyebrow">ComprAer · Materiais e publicações</p>
+    <h1>Requisições de materiais e publicações</h1>
+    <p>Requisições com número de certame SILOMS, integradas às ordens de compra, dígitos, projetos e descrições de OM.</p>
+    <span class="proc-source-chip"><i class="bi bi-database-check"></i><span id="procGeneratedAt">Carregando data dos dados…</span></span>
+  </header>
+
+  <main class="proc-dashboard">
+    <section class="proc-section" aria-labelledby="filtersTitle">
+      <div class="proc-section-heading">
+        <div><h2 id="filtersTitle">Filtros de análise</h2><p>Selecione uma ou mais opções em cada dimensão. Filtros vazios consideram todo o escopo.</p></div>
+        <div class="proc-filter-actions"><button class="proc-action" id="procResetFilters" type="button"><i class="bi bi-arrow-counterclockwise"></i> Limpar filtros</button></div>
+      </div>
+      <div class="proc-filter-grid">
+        <label class="proc-filter-field"><span>OM Requisitante</span><select multiple data-filter="om"></select></label>
+        <label class="proc-filter-field"><span>Projeto</span><select multiple data-filter="projetoLabel"></select></label>
+        <label class="proc-filter-field"><span>Ano</span><select multiple data-filter="anoAbertura"></select></label>
+        <label class="proc-filter-field"><span>Faixa de Valor</span><select multiple data-filter="faixaValor"></select></label>
+        <label class="proc-filter-field"><span>Tipo da requisição</span><select multiple data-filter="tipoRequisicao"></select></label>
+        <label class="proc-filter-field"><span>Grande Comando</span><select multiple data-filter="grandeComando"></select></label>
+        <label class="proc-filter-field"><span>Empresa vencedora</span><select multiple data-filter="empresaVencedora"></select></label>
+        <label class="proc-filter-field"><span>Empresa fabricante</span><select multiple data-filter="empresaFabricante"></select></label>
+        <label class="proc-filter-field"><span>Descrição do item</span><select multiple data-filter="descricao"></select></label>
+        <label class="proc-filter-field"><span>Part Number</span><select multiple data-filter="partNumber"></select></label>
+        <label class="proc-filter-field"><span>Número da requisição</span><select multiple data-filter="requisicao"></select></label>
+        <label class="proc-filter-field"><span>Número do certame SILOMS</span><select multiple data-filter="certame"></select></label>
+        <label class="proc-filter-field"><span>Situação da requisição</span><select multiple data-filter="status"></select></label>
+        <label class="proc-filter-field"><span>Validade do mapa comparativo</span><select multiple data-filter="validadeMapa"></select></label>
+        <label class="proc-filter-field"><span>Número da ordem de compra</span><select multiple data-filter="po"></select></label>
+      </div>
+    </section>
+
+    <section class="proc-kpi-grid" id="procKpis" aria-label="Indicadores macro"></section>
+
+    <section class="proc-section" aria-labelledby="chartsTitle">
+      <div class="proc-section-heading"><div><h2 id="chartsTitle">Visão gerencial</h2><p id="procFilteredTotal">Carregando requisições…</p></div></div>
+      <div class="proc-chart-grid">
+        <article class="proc-chart-card"><h3>Valores por OM requisitante</h3><p>Valor total homologado das requisições</p><div class="proc-chart" id="chartValorOm"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por OM requisitante</h3><p>Número de requisições</p><div class="proc-chart" id="chartQtdOm"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por empresa vencedora</h3><p>Número de requisições</p><div class="proc-chart" id="chartQtdEmpresa"></div></article>
+        <article class="proc-chart-card"><h3>Valores por empresa vencedora</h3><p>Valor total homologado das requisições</p><div class="proc-chart" id="chartValorEmpresa"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por projeto</h3><p>Número de requisições</p><div class="proc-chart" id="chartQtdProjeto"></div></article>
+        <article class="proc-chart-card"><h3>Valores por projeto</h3><p>Valor total homologado das requisições</p><div class="proc-chart" id="chartValorProjeto"></div></article>
+        <article class="proc-chart-card"><h3>Quantidade por situação</h3><p>Número de requisições por situação da requisição</p><div class="proc-chart" id="chartQtdSituacao"></div></article>
+        <article class="proc-chart-card"><h3>Valores por situação</h3><p>Valor total homologado por situação da requisição</p><div class="proc-chart" id="chartValorSituacao"></div></article>
+      </div>
+    </section>
+
+    <section class="proc-section" aria-labelledby="tableTitle">
+      <div class="proc-section-heading"><div><h2 id="tableTitle">Requisições filtradas</h2><p>Detalhamento das requisições e das ordens de compra associadas</p></div></div>
+      <div class="proc-table-wrap">
+        <table class="proc-table">
+          <thead><tr><th>Requisição</th><th>Certame</th><th>Descrição</th><th>Quantidade</th><th>Fabricante</th><th>Empresa vencedora</th><th>Ordem de compra</th><th>Valor homologado</th><th>Saldo da PO</th><th>Situação</th><th>DPE</th></tr></thead>
+          <tbody id="procTableBody"></tbody>
+        </table>
+      </div>
+      <div class="proc-table-toolbar"><span class="proc-table-info" id="procTableInfo"></span><div class="proc-pagination"><button id="procPagePrev" type="button" aria-label="Página anterior">‹</button><span id="procPageCurrent">1 / 1</span><button id="procPageNext" type="button" aria-label="Próxima página">›</button></div></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="processos-data.js"></script>
+  <script src="processos-panel.js?v=20260921-2"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

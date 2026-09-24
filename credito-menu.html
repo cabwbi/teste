@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+  <title>Painel CABW - Gestão de Crédito</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body.credit-hub{background:#f3f7fc;color:#092f67;min-height:100vh}
+    .credit-hub__main{max-width:1180px;margin:0 auto;padding:38px 22px 64px}
+    .credit-hub__hero{position:relative;overflow:hidden;padding:34px;border-radius:22px;background:linear-gradient(125deg,#00265f,#07599b);color:#fff;box-shadow:0 16px 34px rgba(0,38,95,.18)}
+    .credit-hub__hero:after{content:"";position:absolute;right:-52px;top:-82px;width:220px;height:220px;border:24px solid rgba(255,210,0,.18);border-radius:50%}
+    body.credit-hub .credit-hub__hero h1{position:relative;margin:0 0 8px;color:#fff!important;font-weight:800;font-size:clamp(1.75rem,3vw,2.55rem)}
+    body.credit-hub .credit-hub__hero p{position:relative;max-width:790px;margin:0;color:#fff!important;line-height:1.65}
+    .credit-hub__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:28px}
+    .credit-hub__card{display:flex;flex-direction:column;min-height:300px;padding:28px;border:1px solid #d9e4f1;border-radius:20px;background:#fff;color:#092f67;text-decoration:none;box-shadow:0 12px 30px rgba(0,38,95,.09);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .credit-hub__card:hover{transform:translateY(-4px);border-color:#74a8d6;box-shadow:0 18px 38px rgba(0,38,95,.15);color:#092f67;text-decoration:none}
+    .credit-hub__icon{display:grid;place-items:center;width:58px;height:58px;border-radius:16px;background:#e9f2fb;color:#00478a;font-size:1.7rem}
+    .credit-hub__card h2{margin:22px 0 10px;color:#00265f;font-size:1.35rem;font-weight:800}
+    .credit-hub__card p{margin:0;color:#516782;line-height:1.65}
+    .credit-hub__action{display:inline-flex;align-items:center;gap:8px;margin-top:auto;padding-top:26px;color:#00478a;font-weight:800}
+    @media(max-width:760px){.credit-hub__grid{grid-template-columns:1fr}.credit-hub__main{padding:22px 14px 42px}.credit-hub__hero{padding:26px 22px}}
+  </style>
+</head>
+<body class="credit-hub">
+<nav class="navbar navbar-expand-lg navbar-dark cabw-navbar" aria-label="Navegação principal">
+  <a class="navbar-brand" href="index.html">Painel CABW</a>
+  <img src="cabw_logo.png" alt="Brasão da Comissão Aeronáutica Brasileira em Washington" class="header-logo">
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação"><span class="navbar-toggler-icon"></span></button>
+  <div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav mr-auto">
+    <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house-fill"></i><span>Início</span></a></li>
+    <li class="nav-item active"><a class="nav-link" aria-current="page" href="credito-menu.html"><i class="bi bi-bar-chart-line"></i><span>Gestão de Crédito</span></a></li>
+    <li class="nav-item"><a class="nav-link" href="contratos.html"><i class="bi bi-file-earmark-check"></i><span>Contratos</span></a></li>
+    <li class="nav-item"><a class="nav-link" href="processos.html"><i class="bi bi-clipboard2-check"></i><span>Requisições</span></a></li>
+    <li class="nav-item"><a class="nav-link" href="governanca.html"><i class="bi bi-diagram-3"></i><span>Governança e ARC</span></a></li>
+    <li class="nav-item"><a class="nav-link" href="https://camaraajcv.github.io/cabw-pagamentos./" target="_blank" rel="noopener noreferrer" aria-label="Abrir Indicadores Financeiros em nova janela"><i class="bi bi-currency-dollar"></i><span>Finanças</span></a></li>
+    <li class="nav-item"><a class="nav-link" href="suprimento-fundos.html"><i class="bi bi-cash-coin"></i><span>Suprimento de Fundos</span></a></li>
+  </ul></div>
+</nav>
+<main class="credit-hub__main">
+  <header class="credit-hub__hero">
+    <h1>Gestão de Crédito</h1>
+    <p>Selecione a visão executiva do crédito ou a análise de compatibilização entre saldos disponíveis e requisições anteriores ao empenho.</p>
+  </header>
+  <section class="credit-hub__grid" aria-label="Painéis de crédito">
+    <a class="credit-hub__card" href="credito.html">
+      <span class="credit-hub__icon"><i class="bi bi-wallet2"></i></span>
+      <h2>Visão geral da Execução</h2>
+      <p>Visão executiva do crédito recebido, empenhado, ainda não empenhado e liquidado, com detalhamentos por Grande Comando, ação, OM, natureza e projeto.</p>
+      <span class="credit-hub__action">Acessar painel <i class="bi bi-arrow-right"></i></span>
+    </a>
+    <a class="credit-hub__card" href="compatibilizacao.html">
+      <span class="credit-hub__icon"><i class="bi bi-intersect"></i></span>
+      <h2>Compatibilização de créditos e processos</h2>
+      <p>Comparação entre o crédito disponível e as requisições compatíveis, com filtros analíticos e propostas de emprego do crédito.</p>
+      <span class="credit-hub__action">Acessar painel <i class="bi bi-arrow-right"></i></span>
+    </a>
+  </section>
+</main>
+<script src="auth.js?v=auth-cabw-2026"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1906,3 +1906,8 @@ select.cabw-native-multi-hidden{display:none!important;}
 
 /* Ajuste 17/07/2026: coluna de risco/prazo dos contratos */
 .contract-risk-stack{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:112px}.contract-risk-days{font-size:.75rem;font-weight:900;color:#0a2450;white-space:nowrap}.contract-risk-chip{display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:.78rem;line-height:1.15;white-space:nowrap}.contract-risk-chip--critico{background:#d71920!important;color:#fff!important;border:1px solid #a30f16!important}.contract-risk-chip--atencao{background:#ffd200!important;color:#4a3a00!important;border:1px solid #d4a900!important}.contract-risk-chip--normal{background:#003b7a!important;color:#fff!important;border:1px solid #00265f!important}.contract-risk-chip--sem-data{background:#e5e7eb!important;color:#374151!important;border:1px solid #cbd5e1!important}.contract-row--vencido td,.contract-row--ate-90 td{background:#fff1f2!important}.contract-row--ate-150 td{background:#fffbeb!important}.contract-row--regular td{background:#f8fbff!important}
+
+/* Rodape discreto com datas das fontes utilizadas */
+.cabw-source-dates{margin:28px 8px 4px;padding-top:10px;color:#a3acb9!important;font-size:11px!important;font-weight:400!important;line-height:1.45;text-align:right;letter-spacing:.005em}
+.cabw-source-dates::before{content:"";display:block;width:72px;height:1px;background:#e4e8ee;margin:0 0 8px auto}
+@media(max-width:768px){.cabw-source-dates{text-align:left;margin-left:0;margin-right:0}.cabw-source-dates::before{margin-left:0;margin-right:auto}}
