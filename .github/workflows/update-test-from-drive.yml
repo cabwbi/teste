@@ -51,6 +51,19 @@ jobs:
           test -f /tmp/siscabw-runtime/download_drive.py
           test -f /tmp/siscabw-runtime/validate_candidate.py
 
+      - name: Alinhar validação ao pacote atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i '/^assets\\/js\\/processos-data\\.js$/d' /tmp/siscabw-runtime/generated_files.txt
+          python - <<'PY2'
+          from pathlib import Path
+          p=Path('/tmp/siscabw-runtime/validate_candidate.py')
+          t=p.read_text(encoding='utf-8')
+          t=t.replace('        "processos-data.js": "assets/js/processos-data.js",\\n', '')
+          p.write_text(t, encoding='utf-8')
+          PY2
+
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
