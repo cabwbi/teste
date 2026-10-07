@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Baixa, sem interação, as nove planilhas autorizadas do Google Drive."""
+"""Baixa as dez planilhas e o ZIP-base autorizados do Google Drive."""
 from __future__ import annotations
 
 import argparse
@@ -18,6 +18,7 @@ EXPECTED = (
     "Ordem_de_compra_em_assinatura.xlsx",
     "ordem_de_compra.xlsx",
     "requisicoes.xlsx",
+    "historico_obs.xlsx",
     "descricao_OM.xlsx",
     "descricao_projetos.xlsx",
 )
@@ -31,6 +32,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--folder-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--zip-folder-id")
+    parser.add_argument("--zip-output", type=Path)
     args = parser.parse_args()
     raw = os.environ.get("GDRIVE_SERVICE_ACCOUNT_JSON", "")
     if not raw:
@@ -98,7 +101,53 @@ def main() -> None:
     (args.output / "input_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"Nove planilhas baixadas em {args.output}")
+    if args.zip_folder_id:
+        if not args.zip_output:
+            raise SystemExit("--zip-output é obrigatório com --zip-folder-id")
+        zip_query = f"'{args.zip_folder_id}' in parents and trashed = false"
+        zip_params = {
+            "q": zip_query,
+            "fields": "files(id,name,mimeType,modifiedTime,size,md5Checksum)",
+            "pageSize": 1000,
+            "orderBy": "modifiedTime desc",
+            "supportsAllDrives": "true",
+            "includeItemsFromAllDrives": "true",
+        }
+        zip_response = session.get("https://www.googleapis.com/drive/v3/files", params=zip_params, timeout=60)
+        zip_response.raise_for_status()
+        zip_files = [
+            x for x in zip_response.json().get("files", [])
+            if Path(x.get("name", "")).suffix.lower() == ".zip"
+        ]
+        if not zip_files:
+            raise SystemExit("Nenhum ZIP-base encontrado na pasta 02_ZIP_Base.")
+        selected = sorted(zip_files, key=lambda x: x.get("modifiedTime", ""), reverse=True)[0]
+        with session.get(
+            f"https://www.googleapis.com/drive/v3/files/{selected['id']}",
+            params={"alt": "media", "supportsAllDrives": "true"},
+            stream=True,
+            timeout=300,
+        ) as download:
+            download.raise_for_status()
+            args.zip_output.parent.mkdir(parents=True, exist_ok=True)
+            with args.zip_output.open("wb") as handle:
+                for block in download.iter_content(1024 * 1024):
+                    if block:
+                        handle.write(block)
+        if not args.zip_output.read_bytes()[:4].startswith(b"PK"):
+            raise SystemExit("O pacote-base baixado não é um ZIP válido.")
+        zip_manifest = {
+            "id": selected.get("id"),
+            "name": selected.get("name"),
+            "modifiedTime": selected.get("modifiedTime"),
+            "size": selected.get("size"),
+            "md5Checksum": selected.get("md5Checksum"),
+        }
+        (args.output / "zip_manifest.json").write_text(
+            json.dumps(zip_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        print(f"ZIP-base selecionado: {selected['name']} ({selected.get('modifiedTime', '')})")
+    print(f"Dez planilhas baixadas em {args.output}")
 
 
 if __name__ == "__main__":
