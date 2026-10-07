@@ -1,11 +1,9 @@
-name: SISCABW Teste - Atualizar dados do Google Drive
+name: SISCABW Teste - ZIP-base + dados do Google Drive
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 13 * * 1-5'
-  issues:
-    types: [opened, reopened]
   push:
     paths:
       - '.github/workflows/update-test-from-drive.yml'
@@ -19,13 +17,12 @@ concurrency:
 
 jobs:
   atualizar_teste:
-    if: >-
-      github.repository == 'cabwbi/teste' &&
-      (github.event_name != 'issues' || startsWith(github.event.issue.title, 'EXECUTAR ATUALIZACAO SISCABW TESTE'))
+    if: github.repository == 'cabwbi/teste'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     env:
       DRIVE_INPUT_FOLDER_ID: '1OF-84Nnbfp0y9M-nPDDWQqeeYfjQma-c'
+      DRIVE_ZIP_FOLDER_ID: '1bZ86fqTY99dOiAShwCMydyjo6giAbzlf'
       GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
 
     steps:
@@ -38,36 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = 'cabwbi/teste' || exit 2
-
-      - name: Restaurar runtime da automação
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf /tmp/siscabw-runtime
-          mkdir -p /tmp/siscabw-runtime
-          cat automation/runtime.part* | base64 -d | tar -xzf - -C /tmp/siscabw-runtime
-          test -f /tmp/siscabw-runtime/generate_data.py
-          test -f /tmp/siscabw-runtime/download_drive.py
-          test -f /tmp/siscabw-runtime/validate_candidate.py
-
-      - name: Alinhar validação ao pacote atual
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY2'
-          from pathlib import Path
-
-          allow = Path('/tmp/siscabw-runtime/generated_files.txt')
-          lines = [x for x in allow.read_text(encoding='utf-8').splitlines()
-                   if x.strip() != 'assets/js/processos-data.js']
-          allow.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-
-          validator = Path('/tmp/siscabw-runtime/validate_candidate.py')
-          src = validator.read_text(encoding='utf-8').splitlines()
-          src = [x for x in src if '"processos-data.js": "assets/js/processos-data.js"' not in x]
-          validator.write_text('\n'.join(src) + '\n', encoding='utf-8')
-          PY2
+          test "$GITHUB_REPOSITORY" = 'cabwbi/teste'
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -75,46 +43,206 @@ jobs:
           python-version: '3.12'
 
       - name: Instalar dependências
-        run: python -m pip install --disable-pip-version-check -r /tmp/siscabw-runtime/requirements.txt
+        run: python -m pip install --disable-pip-version-check -r automation/requirements.txt
 
       - name: Preparar diretórios
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/siscabw-inputs /tmp/siscabw-candidate /tmp/siscabw-artifacts
+          rm -rf /tmp/siscabw-inputs /tmp/siscabw-candidate /tmp/siscabw-artifacts /tmp/siscabw-base.zip
           mkdir -p /tmp/siscabw-inputs /tmp/siscabw-candidate /tmp/siscabw-artifacts
-          rsync -a --exclude='.git/' ./ /tmp/siscabw-candidate/
 
-      - name: Baixar as 9 fontes do Google Drive
+      - name: Baixar ZIP-base e dez fontes do Google Drive
         shell: bash
         run: |
           set -euo pipefail
-          python /tmp/siscabw-runtime/download_drive.py \
+          python automation/download_drive.py \
             --folder-id "$DRIVE_INPUT_FOLDER_ID" \
             --output /tmp/siscabw-inputs \
+            --zip-folder-id "$DRIVE_ZIP_FOLDER_ID" \
+            --zip-output /tmp/siscabw-base.zip \
             | tee /tmp/siscabw-artifacts/download.log
           cp /tmp/siscabw-inputs/input_manifest.json /tmp/siscabw-artifacts/input_manifest.json
+          cp /tmp/siscabw-inputs/zip_manifest.json /tmp/siscabw-artifacts/zip_manifest.json
 
-      - name: Gerar dados candidatos
+      - name: Restaurar versão estrutural mais recente
         shell: bash
         run: |
           set -euo pipefail
-          python /tmp/siscabw-runtime/generate_data.py \
+          unzip -q -o /tmp/siscabw-base.zip -d /tmp/siscabw-candidate
+          test -f /tmp/siscabw-candidate/index.html
+          test -f /tmp/siscabw-candidate/auth.js
+          test -f /tmp/siscabw-candidate/credito.html
+          test -f /tmp/siscabw-candidate/credit-panel.js
+          test -f /tmp/siscabw-candidate/automation/generate_data.py.gz.b64
+
+      - name: Usar o gerador do próprio ZIP-base
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d /tmp/siscabw-candidate/automation/generate_data.py.gz.b64 | gzip -d > /tmp/siscabw-generate.py
+          python -m py_compile /tmp/siscabw-generate.py
+
+      - name: Atualizar dados do pacote-base
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/siscabw-generate.py \
             --inputs /tmp/siscabw-inputs \
             --repo /tmp/siscabw-candidate \
             | tee /tmp/siscabw-artifacts/generation-report.json
 
-      - name: Validar candidato contra a versão atual do teste
+      - name: Validar dados e coerência
         shell: bash
         run: |
           set -euo pipefail
-          python /tmp/siscabw-runtime/validate_candidate.py \
-            --candidate /tmp/siscabw-candidate \
-            --current "$GITHUB_WORKSPACE" \
-            --inputs /tmp/siscabw-inputs \
-            --config /tmp/siscabw-runtime/validation_config.json \
-            --allowlist /tmp/siscabw-runtime/generated_files.txt \
-            --report /tmp/siscabw-artifacts/validation-report.json
+          python - <<'PY'
+          import json, math, subprocess
+          from pathlib import Path
+
+          cur = Path.cwd()
+          cand = Path('/tmp/siscabw-candidate')
+          inputs = Path('/tmp/siscabw-inputs')
+          errors = []
+          warnings = []
+
+          prefixes = {
+              'contracts-data.js': 'window.CABW_CONTRACTS_DATA = ',
+              'processos-data.js': 'window.CABW_PROCESSOS_DATA = ',
+              'rp-data.js': 'window.CABW_RP_DATA = ',
+              'suprimento-data.js': 'window.CABW_SUPRIMENTO_DATA = ',
+              'home-data.js': 'window.CABW_HOME_DATA = ',
+          }
+
+          def j(path):
+              return json.loads(path.read_text(encoding='utf-8'))
+
+          def js(root, name):
+              t = (root / name).read_text(encoding='utf-8')
+              p = prefixes[name]
+              if not t.startswith(p) or not t.rstrip().endswith(';'):
+                  raise ValueError(f'Formato inválido: {name}')
+              return json.loads(t[len(p):].rstrip()[:-1])
+
+          manifest = j(inputs / 'input_manifest.json')
+          if len(manifest.get('files', [])) != 10:
+              errors.append(f"Esperadas 10 fontes; recebidas {len(manifest.get('files', []))}.")
+          canonical = [x.get('canonicalName') for x in manifest.get('files', [])]
+          if len(canonical) != len(set(canonical)):
+              errors.append('Fontes canônicas duplicadas no Drive.')
+
+          z = j(inputs / 'zip_manifest.json')
+          if not str(z.get('name','')).lower().endswith('.zip'):
+              errors.append('ZIP-base inválido no manifesto.')
+
+          summary = j(cand / 'contracts-summary.json')
+          contracts_obj = js(cand, 'contracts-data.js')
+          contracts = contracts_obj.get('contracts', contracts_obj.get('data', []))
+          if summary['total'] != len(contracts):
+              errors.append('Total de contratos diverge da lista.')
+          if summary['total'] != sum(summary['counts'].values()):
+              errors.append('Soma das categorias diverge do total de contratos.')
+
+          expected = {'administrativos':0,'finalisticos':0,'fms':0}
+          ids = []
+          for item in contracts:
+              cid = str(item.get('contrato','')).strip()
+              ids.append(cid)
+              cage = str(item.get('cage','')).strip()
+              command = str(item.get('grandeComando', item.get('grandComando',''))).strip()
+              cat = 'fms' if cage == 'W2525' else ('administrativos' if command == 'CW' else 'finalisticos')
+              expected[cat] += 1
+              if item.get('categoria') != cat:
+                  errors.append(f'Classificação inconsistente no contrato {cid}.')
+                  break
+          if not all(ids) or len(ids) != len(set(ids)):
+              errors.append('Há contrato sem ID ou ID duplicado.')
+          if expected != summary['counts']:
+              errors.append(f"Categorias calculadas {expected} divergem de {summary['counts']}.")
+
+          home = js(cand, 'home-data.js')
+          if home['contratos']['quantidade'] != summary['total']:
+              errors.append('Card de contratos da entrada diverge do resumo.')
+          if home['contratos']['categorias'] != summary['counts']:
+              errors.append('Categorias do card de entrada divergem do resumo.')
+
+          proc = js(cand, 'processos-data.js')
+          if proc['summary']['totalEscopo'] != len(proc.get('materials',[])) + len(proc.get('repairs',[])):
+              errors.append('Resumo de processos diverge das listas.')
+
+          rp = js(cand, 'rp-data.js')
+          if rp['summary']['totalRegistros'] != len(rp.get('records',[])):
+              errors.append('Resumo de RP diverge dos registros.')
+
+          sf = js(cand, 'suprimento-data.js')
+          metrics_after = {
+              'contracts_total': int(summary['total']),
+              'administrativos': int(summary['counts']['administrativos']),
+              'finalisticos': int(summary['counts']['finalisticos']),
+              'fms': int(summary['counts']['fms']),
+              'processos': int(proc['summary']['totalEscopo']),
+              'rp': int(rp['summary']['totalRegistros']),
+              'sf': len(sf.get('orders', sf.get('records',[]))),
+          }
+
+          try:
+              old_summary = j(cur / 'contracts-summary.json')
+              old_proc = js(cur, 'processos-data.js')
+              old_rp = js(cur, 'rp-data.js')
+              old_sf = js(cur, 'suprimento-data.js')
+              metrics_before = {
+                  'contracts_total': int(old_summary['total']),
+                  'administrativos': int(old_summary['counts']['administrativos']),
+                  'finalisticos': int(old_summary['counts']['finalisticos']),
+                  'fms': int(old_summary['counts']['fms']),
+                  'processos': int(old_proc['summary']['totalEscopo']),
+                  'rp': int(old_rp['summary']['totalRegistros']),
+                  'sf': len(old_sf.get('orders', old_sf.get('records',[]))),
+              }
+              limits = {
+                  'contracts_total': (0.10,0.25),
+                  'administrativos': (0.25,0.50),
+                  'finalisticos': (0.20,0.40),
+                  'fms': (0.10,0.20),
+                  'processos': (0.15,0.30),
+                  'rp': (0.25,0.35),
+                  'sf': (0.25,0.50),
+              }
+              for key, before in metrics_before.items():
+                  after = metrics_after[key]
+                  if before <= 0:
+                      continue
+                  max_drop, max_growth = limits[key]
+                  drop = (before-after)/before
+                  growth = (after-before)/before
+                  if drop > max_drop:
+                      errors.append(f'Queda anormal em {key}: {before} -> {after}.')
+                  if growth > max_growth:
+                      errors.append(f'Crescimento anormal em {key}: {before} -> {after}.')
+          except Exception as exc:
+              warnings.append(f'Comparação com versão anterior não executada: {exc}')
+              metrics_before = {}
+
+          for name in ('contracts-data.js','credit-data.js','compatibilizacao-data.js','processos-data.js','rp-data.js','suprimento-data.js','home-data.js','credit-panel.js'):
+              result = subprocess.run(['node','--check',str(cand/name)],capture_output=True,text=True)
+              if result.returncode:
+                  errors.append(f'Sintaxe JavaScript inválida em {name}: {result.stderr.strip()}')
+
+          report = {
+              'status': 'ok' if not errors else 'failed',
+              'errors': errors,
+              'warnings': warnings,
+              'zipBase': z,
+              'before': metrics_before,
+              'after': metrics_after,
+          }
+          Path('/tmp/siscabw-artifacts/validation-report.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          if errors:
+              raise SystemExit(2)
+          PY
 
       - name: Guardar diagnóstico
         if: always()
@@ -125,45 +253,29 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Aplicar somente arquivos de dados autorizados
+      - name: Aplicar o pacote-base atualizado no ambiente de teste
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          while IFS= read -r rel; do
-            [ -n "$rel" ] || continue
-            mkdir -p "$(dirname "$rel")"
-            cp "/tmp/siscabw-candidate/$rel" "$rel"
-          done < /tmp/siscabw-runtime/generated_files.txt
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='automation/' \
+            /tmp/siscabw-candidate/ ./
 
-      - name: Confirmar allowlist
-        if: success()
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t changed < <(git status --porcelain | sed -E 's/^.. //')
-          for rel in "${changed[@]}"; do
-            [ -z "$rel" ] && continue
-            if ! grep -Fxq "$rel" /tmp/siscabw-runtime/generated_files.txt; then
-              echo "Alteração não autorizada detectada: $rel"
-              exit 3
-            fi
-          done
-
-      - name: Publicar dados no main de cabwbi/teste
+      - name: Publicar no main de cabwbi/teste
         if: success()
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          while IFS= read -r rel; do
-            [ -n "$rel" ] && git add -- "$rel"
-          done < /tmp/siscabw-runtime/generated_files.txt
-          if git diff --cached --quiet; then
-            echo 'Nenhuma alteração de dados encontrada.'
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo 'Nenhuma alteração encontrada.'
             exit 0
           fi
+          git add -A
           DATA_REF=$(python - <<'PY'
           import json
           from pathlib import Path
@@ -171,5 +283,12 @@ jobs:
           print(d.get('geradoEm','sem-data'))
           PY
           )
-          git commit -m "AUTO TESTE: atualiza dados SISCABW - $DATA_REF"
+          BASE_NAME=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/siscabw-inputs/zip_manifest.json').read_text(encoding='utf-8'))
+          print(d.get('name','ZIP-base'))
+          PY
+          )
+          git commit -m "AUTO TESTE: aplica $BASE_NAME e dados $DATA_REF"
           git push origin HEAD:main
