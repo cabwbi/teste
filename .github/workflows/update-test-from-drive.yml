@@ -55,13 +55,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sed -i '/^assets\\/js\\/processos-data\\.js$/d' /tmp/siscabw-runtime/generated_files.txt
           python - <<'PY2'
           from pathlib import Path
-          p=Path('/tmp/siscabw-runtime/validate_candidate.py')
-          t=p.read_text(encoding='utf-8')
-          t=t.replace('        "processos-data.js": "assets/js/processos-data.js",\\n', '')
-          p.write_text(t, encoding='utf-8')
+
+          allow = Path('/tmp/siscabw-runtime/generated_files.txt')
+          lines = [x for x in allow.read_text(encoding='utf-8').splitlines()
+                   if x.strip() != 'assets/js/processos-data.js']
+          allow.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+          validator = Path('/tmp/siscabw-runtime/validate_candidate.py')
+          src = validator.read_text(encoding='utf-8').splitlines()
+          src = [x for x in src if '"processos-data.js": "assets/js/processos-data.js"' not in x]
+          validator.write_text('\n'.join(src) + '\n', encoding='utf-8')
           PY2
 
       - name: Configurar Python
