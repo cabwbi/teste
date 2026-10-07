@@ -156,11 +156,12 @@
 .proc-kpi__icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--proc-sky); color: var(--proc-blue); }
 .proc-kpi__label { min-height: 32px; margin-top: 13px; color: var(--proc-muted); font-size: .67rem; font-weight: 800; line-height: 1.35; text-transform: uppercase; }
 .proc-kpi strong { display: block; margin-top: 6px; color: var(--proc-navy); font-size: 1.38rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.proc-kpi small { display: block; margin-top: 5px; color: #8290a1; font-size: .63rem; }
+.proc-kpi small { display: block; margin-top: 5px; color: #8290a1; font-size: .63rem; white-space: pre-line; }
 .proc-kpi--action { width: 100%; appearance: none; font: inherit; text-align: left; cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
 .proc-kpi--action:hover,
 .proc-kpi--action:focus-visible { border-color: var(--proc-blue); box-shadow: 0 12px 26px rgba(0, 86, 155, .16); transform: translateY(-2px); outline: none; }
 .proc-kpi--action small { color: var(--proc-blue); font-weight: 800; }
+.proc-kpi--active { outline: 3px solid rgba(255, 210, 0, .75); background: #fffbea; box-shadow: 0 10px 28px rgba(0, 38, 95, .15); }
 .proc-kpi--dispatch .proc-kpi__heading { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .proc-kpi--dispatch .proc-kpi__icon { flex: 0 0 34px; }
 .proc-kpi--dispatch .proc-kpi__label { min-height: 0; margin-top: 0; flex: 1; color: #52657f; }

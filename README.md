@@ -1,5 +1,14 @@
 # SISCABW — guia único de operação, atualização e publicação
 
+## Ajuste de 05/10/2026 — ocorrências da prestação de contas
+
+- A consolidação para prestação de contas passou a apresentar, no primeiro slide de cada contrato, as ocorrências registradas na fonte `historico_obs`.
+- O mês anterior e o mês corrente ficam abertos; somente o histórico dos demais meses permanece expansível.
+- A coluna `DATA` de `historico_obs` é interpretada no padrão americano mês/dia/ano e apresentada no painel no padrão brasileiro dia/mês/ano.
+- A tipografia das datas e observações foi ampliada para leitura durante apresentações.
+- A associação é feita entre o identificador da primeira coluna de `historico_obs` e a primeira coluna do controle financeiro de contratos, com normalização de códigos numéricos.
+- O acesso externo de Finanças passou a usar explicitamente `https://camaraajcv.github.io/cabw-pagamentos./index.html`.
+
 ## Ajuste de 24/09/2026 — seletor de OM da prestação de contas
 
 - A opção técnica “Não informado” foi removida dos botões do gráfico do segundo slide porque não possuía dados úteis para gráfico, indicadores ou tabela.
@@ -27,7 +36,7 @@ Este repositório contém o painel estático de Business Intelligence da Comiss�
 
 ## Fontes obrigatórias
 
-Cada atualização utiliza nove planilhas. O gerador aceita `.xls` ou `.xlsx`, desde que as colunas obrigatórias sejam preservadas.
+Cada atualização utiliza dez planilhas. O gerador aceita `.xls` ou `.xlsx`, desde que as colunas obrigatórias sejam preservadas.
 
 | Arquivo canônico | Uso principal |
 |---|---|
@@ -39,6 +48,7 @@ Cada atualização utiliza nove planilhas. O gerador aceita `.xls` ou `.xlsx`, d
 | `NL_requisicao.xlsx` | pagamentos, faturas e liquidações por PO |
 | `ordem_de_compra.xlsx` | ordens de compra, versões, valores, fornecedor, faturamento e saldo |
 | `requisicoes.xlsx` | requisições, certame, cotação, situação, datas, itens e reparos |
+| `historico_obs.xlsx` | ocorrências mensais dos contratos na prestação de contas |
 | `volumes.xlsx` | volumes, pedidos, PAG e manifesto |
 
 O arquivo `requisicoes` é a referência temporal da publicação. A data exibida no painel usa, nesta ordem: metadado interno da planilha; `modifiedTime` do manifesto de download; ou data/hora de upload do arquivo. A apresentação usa o fuso de Washington (`America/New_York`) e nunca a hora em que o gerador foi executado.
@@ -58,6 +68,7 @@ O arquivo `requisicoes` é a referência temporal da publicação. A data exibid
 - A lista de liquidações apresenta inicialmente os dois meses mais recentes e pode ser expandida; na impressão ou geração de PDF, todo o histórico é exibido automaticamente.
 - Vigência em vermelho: menos de 90 dias, incluindo contratos vencidos. Vigência em amarelo: de 90 a 150 dias.
 - No relatório consolidado, o histórico mensal usa cinza para o ano anterior e azul para o ano atual; o rótulo fica sobre a barra e a tooltip relaciona as faturas do mês. A tabela de faturamento é ordenada da NL mais recente para a mais antiga e separada por mês.
+- No primeiro slide, a área **Ocorrências** apresenta o mês anterior aberto, o mês corrente em seção expansível e os demais meses no histórico expansível. A data é obtida da coluna `DATA` e o vínculo usa o identificador do contrato da primeira coluna das duas fontes.
 
 ### Requisições
 
@@ -69,6 +80,10 @@ O arquivo `requisicoes` é a referência temporal da publicação. A data exibid
 - Mapa aprovado é válido por 60 dias contados da data de abertura.
 - Requisição atrasada de material/publicação: situação `Empenho aprovado` e DPE anterior à data de referência dos dados.
 - Economia da licitação: valor de referência menos valor total, com valor absoluto e percentual.
+- No painel de reparos, o valor sob custódia por empresa soma `VALOR DO REPARÁVEL` nas situações `Empenho aprovado` e `Reparável expedido ao fornecedor`.
+- O valor sob custódia é apresentado em KPI com as três maiores empresas do recorte e em gráfico empilhado por situação, sempre obedecendo aos filtros ativos.
+- O indicador de alto valor considera reparáveis expedidos ao fornecedor com `VALOR DO REPARÁVEL` superior a US$ 25.000 e funciona também como filtro do painel.
+- O tempo de elaboração do TDR é calculado entre `DT REP EXP FORN` e `DATA TDR`; o tempo de análise usa `DATA TDR` e `DATA ANÁLISE TDR`. Intervalos negativos e datas vazias são desconsiderados.
 
 ### Compatibilização de crédito e processos
 
@@ -96,6 +111,13 @@ O arquivo `requisicoes` é a referência temporal da publicação. A data exibid
 - A compatibilização limita automaticamente as requisições ao ano da atualização e ao ano anterior; a janela avança com a data dos novos dados.
 - O relatório de compatibilização reproduz os dois gráficos do painel conforme os filtros aplicados.
 - O painel de Suprimento de Fundos gera relatório detalhado para impressão/PDF com filtros, KPI, gráficos e ordens de compra.
+- Na Visão geral da Execução, cada filtro exige confirmação pelo botão `Selecionar`; os dados somente são recalculados após `Consultar`. O relatório inclui o crédito disponível por grupo de OM indicado no dígito e separa a lista de dígitos pelos mesmos grupos de OMs.
+- A Visão geral da Execução e seu relatório apresentam o crédito disponível por OM em barras empilhadas por natureza de despesa, com o total de cada OM. No relatório, cada tabela de dígitos informa também seu saldo total.
+- A tabela inferior da Visão geral da Execução é segregada por grupo de OM e ordenada do maior para o menor saldo agregado, assim como as tabelas dos relatórios. O resumo executivo destaca as quatro OMs com maior saldo disponível.
+- O gráfico empilhado por natureza de despesa limita a visualização às dez OMs ou grupos de OMs com maior saldo disponível no recorte filtrado.
+- Esse gráfico permite alternar o detalhamento empilhado entre natureza de despesa e projeto, sem alterar o total de cada OM ou grupo.
+- As listas de dígitos do painel, do relatório completo e do relatório simplificado omitem registros com saldo igual a zero.
+- O relatório simplificado da Visão geral da Execução apresenta exclusivamente as listas de dígitos por OM e seus totais, respeitando os filtros aplicados.
 
 ### Relatórios e escopos
 
@@ -119,7 +141,7 @@ Os dados mantêm os aliases exigidos pelas páginas legadas, incluindo `contract
 
 ## Atualização dos dados
 
-1. Coloque as nove planilhas em uma pasta de entrada usando os nomes canônicos ou os mesmos nomes com extensão `.xls`.
+1. Coloque as dez planilhas em uma pasta de entrada usando os nomes canônicos ou os mesmos nomes com extensão `.xls`.
 2. Decodifique o gerador versionado:
 
    ```bash
@@ -138,7 +160,7 @@ O script `automation/download_drive.py` pode preparar as fontes e o `input_manif
 
 ## Validação obrigatória
 
-- Confirmar a presença e o schema das nove fontes.
+- Confirmar a presença e o schema das dez fontes.
 - Validar sintaxe de todos os JavaScript com `node --check` e validar os JSON.
 - Reconciliar totais de contratos, crédito, requisições, RP, pagamentos e suprimento.
 - Confirmar aliases de compatibilidade e a data/hora da fonte `requisicoes`.
@@ -151,15 +173,16 @@ As páginas `CHECK_DADOS.html`, `CHECK_COMPATIBILIZACAO.html`, `CHECK_PUBLICACAO
 
 ## Estado desta versão
 
-- 139 contratos: 26 administrativos, 60 finalísticos e 53 FMS.
-- Valor contratado: US$ 1.125.778.828,19.
-- Valor empenhado em contratos: US$ 657.263.613,50.
-- Valor faturado em contratos: US$ 550.741.202,30.
-- Crédito recebido: US$ 129.578.964,84; disponível: US$ 2.564.134,13.
-- Restos a pagar: 905 registros e saldo atual de US$ 36.456.736,12.
-- Requisições homologadas em 2026: 491 de materiais/publicações e 69 de reparo.
-- Pagamentos em 2026: 2.426 NL, no valor de US$ 105.387.982,85.
-- Data de referência: 17/09/2026 às 22:39:54, baseada no upload de `requisicoes`.
+- 141 contratos: 28 administrativos, 61 finalísticos e 52 FMS.
+- Valor contratado: US$ 1.126.213.777,62.
+- Valor empenhado em contratos: US$ 651.205.184,73.
+- Valor faturado em contratos: US$ 554.452.626,19.
+- Crédito recebido: US$ 130.785.281,21; disponível: US$ 8.883.682,47.
+- Restos a pagar: 905 registros e saldo atual de US$ 36.207.739,17.
+- Requisições homologadas em 2026: 527 de materiais/publicações e 69 de reparo.
+- Pagamentos em 2026: 2.662 NL, no valor de US$ 111.035.163,25.
+- Histórico de ocorrências: 78 registros válidos; 2 vinculados aos 141 contratos vigentes e 76 preservados como registros sem contrato atual na base.
+- Data de referência: 05/10/2026 às 01:02:48 em Washington, baseada no arquivo `requisicoes`.
 
 ## Ajuste visual da prestação de contas — 23/09/2026
 

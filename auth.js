@@ -1,8 +1,12 @@
 (function () {
   'use strict';
 
-  var AUTH_USER = atob('Q0FCVw==');
-  var AUTH_PASS = atob('Q0BidzIwMjYyMDI2');
+  var AUTH_CREDENTIALS = [
+    { user: atob('Q0FCVw=='), pass: atob('Q0BidzIwMjYyMDI2') },
+    { user: atob('Q0VMT0c='), pass: atob('QyZMT2cxMjMh') },
+    { user: atob('RklTQ0FJUw=='), pass: atob('RklTQ0BJczEyMyE=') },
+    { user: atob('RVhURVJOTw=='), pass: atob('RVhUJlJObzEyMyE=') }
+  ];
   var AUTH_FLAG = 'cabw_painel_authenticated';
   var ATTEMPT_KEY = 'cabw_painel_auth_attempts';
   var MAX_ATTEMPTS = 3;
@@ -106,9 +110,12 @@
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
-      var user = (userInput.value || '').trim();
+      var user = (userInput.value || '').trim().toUpperCase();
       var pass = passInput.value || '';
-      if (user === AUTH_USER && pass === AUTH_PASS) {
+      var validCredential = AUTH_CREDENTIALS.some(function (credential) {
+        return user === credential.user && pass === credential.pass;
+      });
+      if (validCredential) {
         sessionStorage.setItem(AUTH_FLAG, '1');
         setAttempts(0);
         unlockPage();

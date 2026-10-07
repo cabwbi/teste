@@ -101,6 +101,7 @@
   let modalReturnFocus = null;
   let dispatchModalGroup = 'compraer';
   let selectedLogisticsStages = new Set();
+  let highValueDispatchedOnly = false;
   let activeAnalyticalFilters = [];
 
   function mapValidityValue(row) {
@@ -272,7 +273,8 @@
       return [field, new Set(selectedValues(select))];
     }).filter(([, values]) => values.size);
     const analyticalRows = sourceRows.filter(matchesCurrentAnalyticalFilters);
-    filteredRows = analyticalRows.filter(matchesCurrentLogisticsFilter);
+    const logisticalRows = analyticalRows.filter(matchesCurrentLogisticsFilter);
+    filteredRows = highValueDispatchedOnly ? logisticalRows.filter(isHighValueDispatched) : logisticalRows;
     filteredOtherRepairRows = otherRepairRows.filter(row => matchesCurrentAnalyticalFilters(row) && matchesCurrentLogisticsFilter(row));
     renderLogisticsFilter(analyticalRows);
     currentPage = 1;
@@ -281,6 +283,7 @@
 
   function resetFilters() {
     selectedLogisticsStages.clear();
+    highValueDispatchedOnly = false;
     $$('select[data-filter]').forEach(select => {
       Array.from(select.options).forEach(option => { option.selected = false; });
       const wrapper = select.nextElementSibling;
@@ -296,6 +299,20 @@
     const status = norm(row.status);
     return row.reparavelExpedidoAoFornecedor === true || (status.startsWith('l-') && status.includes('reparav') && status.includes('fornec'));
   }
+  function isHighValueDispatched(row) { return isDispatchedToSupplier(row) && Number(row.valorReparavelUsd || 0) > 25000; }
+  function isRepairableInSupplierCustody(row) {
+    const status = norm(row.status);
+    return status.includes('empenho aprovado') || isDispatchedToSupplier(row);
+  }
+  function elapsedDays(start, end) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(start || '').slice(0, 10)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(end || '').slice(0, 10))) return null;
+    const value = (Date.parse(String(end).slice(0, 10) + 'T00:00:00Z') - Date.parse(String(start).slice(0, 10) + 'T00:00:00Z')) / 86400000;
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+  function averageElapsed(rows, startField, endField) {
+    const values = rows.map(row => elapsedDays(row[startField], row[endField])).filter(value => value !== null);
+    return { average: values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0, count: values.length };
+  }
   function matchesCurrentAnalyticalFilters(row) {
     return activeAnalyticalFilters.every(([field, values]) => values.has(fieldValue(row, field)));
   }
@@ -304,7 +321,13 @@
   }
   function dispatchedRowsForCurrentFilters(group) {
     const rows = group === 'other' ? otherRepairRows : sourceRows;
-    return rows.filter(row => matchesCurrentAnalyticalFilters(row) && matchesCurrentLogisticsFilter(row) && isDispatchedToSupplier(row));
+    return rows.filter(row => matchesCurrentAnalyticalFilters(row) && matchesCurrentLogisticsFilter(row) && isDispatchedToSupplier(row) && (!highValueDispatchedOnly || isHighValueDispatched(row)));
+  }
+  function custodySummary(rows) {
+    const custodyRows = rows.filter(isRepairableInSupplierCustody);
+    const companies = new Map();
+    custodyRows.forEach(row => { const company = String(row.empresaVencedora || 'Não informado').trim() || 'Não informado'; companies.set(company, (companies.get(company) || 0) + Number(row.valorReparavelUsd || 0)); });
+    return { rows: custodyRows, total: sum(custodyRows, 'valorReparavelUsd'), top: Array.from(companies, ([company, value]) => ({ company, value })).filter(item => item.value > 0).sort((a, b) => b.value - a.value).slice(0, 3) };
   }
   function economy(rows) {
     const comparable = rows.filter(row => Number(row.valorReferenciaUsd || 0) > 0);
@@ -327,11 +350,12 @@
 
   function kpiCard(label, value, icon, note, action) {
     const isDispatch = String(action || '').startsWith('repair-dispatched-');
+    const isHighValue = action === 'repair-high-value-dispatched';
     const heading = isDispatch
       ? `<div class="proc-kpi__heading"><span class="proc-kpi__icon"><i class="bi ${esc(icon)}"></i></span><div class="proc-kpi__label">${esc(label)}</div></div>`
       : `<div class="proc-kpi__top"><span class="proc-kpi__icon"><i class="bi ${esc(icon)}"></i></span></div><div class="proc-kpi__label">${esc(label)}</div>`;
     const content = `${heading}<strong title="${esc(value)}">${esc(value)}</strong><small>${esc(note || 'Conforme filtros aplicados')}</small>`;
-    if (action) return `<button class="proc-kpi proc-kpi--action${isDispatch ? ' proc-kpi--dispatch' : ''}" type="button" data-kpi-action="${esc(action)}" aria-haspopup="dialog">${content}</button>`;
+    if (action) return `<button class="proc-kpi proc-kpi--action${isDispatch ? ' proc-kpi--dispatch' : ''}${isHighValue && highValueDispatchedOnly ? ' proc-kpi--active' : ''}" type="button" data-kpi-action="${esc(action)}"${isDispatch ? ' aria-haspopup="dialog"' : ''}${isHighValue ? ` aria-pressed="${highValueDispatchedOnly}"` : ''}>${content}</button>`;
     return `<article class="proc-kpi">${content}</article>`;
   }
 
@@ -362,6 +386,11 @@
       const asIs = countReturn(filteredRows, 'AS IS');
       const completed = repaired + ber + bpr + asIs;
       const successRate = completed ? repaired / completed * 100 : 0;
+      const tdrPreparation = averageElapsed(filteredRows, 'dataExpedicaoReparavel', 'dataTdr');
+      const tdrAnalysis = averageElapsed(filteredRows, 'dataTdr', 'dataAnaliseTdr');
+      const highValueDispatched = filteredRows.filter(isHighValueDispatched);
+      const custody = custodySummary(filteredRows);
+      const custodyTop = custody.top.length ? custody.top.map((item, index) => `${index + 1}. ${item.company} — ${money(item.value)}`).join('\n') : 'Sem valores de reparáveis no recorte';
       base.push(
         ['Quantidade de itens', number(sum(filteredRows, 'quantidade')), 'bi-box-seam', 'Soma das quantidades requisitadas'],
         ['BER', number(ber), 'bi-exclamation-octagon', 'Itens classificados como BER'],
@@ -370,6 +399,10 @@
         ['Reparados', number(repaired), 'bi-check2-circle', 'Itens com retorno reparado'],
         ['Em processo', number(countReturn(filteredRows, 'Em processo')), 'bi-hourglass-split', 'Condição de retorno ainda em branco'],
         ['Percentual de sucesso', percentage(successRate), 'bi-bullseye', completed ? `${number(repaired)} reparado(s) de ${number(completed)} item(ns) concluído(s)` : 'Sem itens concluídos no recorte'],
+        ['Valor de reparáveis sob custódia', money(custody.total), 'bi-building-lock', custodyTop],
+        ['Tempo de elaboração de TDR', `${number(tdrPreparation.average)} dias`, 'bi-stopwatch', `${number(tdrPreparation.count)} requisição(ões) com datas válidas`],
+        ['Tempo de análise de TDR', `${number(tdrAnalysis.average)} dias`, 'bi-hourglass-bottom', `${number(tdrAnalysis.count)} requisição(ões) com datas válidas; intervalos negativos ignorados`],
+        ['Expedidos acima de US$ 25 mil', number(highValueDispatched.length), 'bi-cash-stack', 'Valor do reparável superior a US$ 25.000 · clique para filtrar', 'repair-high-value-dispatched'],
       );
       const dispatchedCompraer = dispatchedRowsForCurrentFilters('compraer');
       const dispatchedOther = dispatchedRowsForCurrentFilters('other');
@@ -383,6 +416,7 @@
       : '';
     container.innerHTML = base.map(item => kpiCard(...item)).join('') + dispatchGroup;
     $$('[data-kpi-action^="repair-dispatched-"]', container).forEach(button => button.addEventListener('click', openDispatchModal));
+    $('[data-kpi-action="repair-high-value-dispatched"]', container)?.addEventListener('click', () => { highValueDispatchedOnly = !highValueDispatchedOnly; applyFilters(); });
   }
 
   function topBuckets(rows, key, valueField, limit) {
@@ -422,6 +456,25 @@
       font: { family: 'Montserrat, Arial, sans-serif', color: '#244160' },
       showlegend: false,
     }, { displayModeBar: false, responsive: true });
+  }
+
+  function drawCustodyByCompany(rows) {
+    const element = document.getElementById('chartCustodiaEmpresa');
+    if (!element || !window.Plotly) return;
+    const categories = ['Empenho aprovado', 'Reparável expedido ao fornecedor'];
+    const groups = new Map();
+    rows.filter(isRepairableInSupplierCustody).forEach(row => {
+      const company = String(row.empresaVencedora || 'Não informado').trim() || 'Não informado';
+      const category = isDispatchedToSupplier(row) ? categories[1] : categories[0];
+      if (!groups.has(company)) groups.set(company, { company, total: 0, values: new Map(categories.map(item => [item, 0])) });
+      const value = Number(row.valorReparavelUsd || 0), group = groups.get(company);
+      group.values.set(category, group.values.get(category) + value); group.total += value;
+    });
+    const companies = Array.from(groups.values()).filter(item => item.total > 0).sort((a, b) => b.total - a.total).reverse();
+    if (!companies.length) { element.innerHTML = '<p class="proc-empty">Nenhum valor de reparável sob custódia para os filtros aplicados.</p>'; return; }
+    const traces = categories.map((category, index) => ({ type: 'bar', orientation: 'h', name: category, y: companies.map(item => item.company), x: companies.map(item => item.values.get(category)), customdata: companies.map(item => [item.company, category, item.values.get(category), item.total]), marker: { color: index ? '#d49b16' : '#2878b8' }, hovertemplate: '<b>%{customdata[0]}</b><br>Situação: %{customdata[1]}<br>Valor da categoria: %{customdata[2]:$,.2f}<br>Total da empresa: %{customdata[3]:$,.2f}<extra></extra>' }));
+    const annotations = companies.map(item => ({ xref: 'paper', x: 1.01, yref: 'y', y: item.company, text: `<b>${money(item.total)}</b>`, showarrow: false, xanchor: 'left', font: { size: 10, color: '#00265f' } }));
+    Plotly.react(element, traces, { barmode: 'stack', height: Math.max(430, companies.length * 42 + 135), margin: { l: 230, r: 150, t: 20, b: 80 }, xaxis: { title: 'Valor do reparável (US$)', gridcolor: '#e6edf5', zeroline: false, automargin: true }, yaxis: { automargin: true, tickfont: { size: 10 } }, legend: { orientation: 'h', x: .5, xanchor: 'center', y: -0.16, yanchor: 'top' }, annotations, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: '#fff', font: { family: 'Montserrat, Arial, sans-serif', color: '#244160' } }, { displayModeBar: false, responsive: true });
   }
 
   function drawReturnByCompany() {
@@ -505,7 +558,10 @@
     drawBar('chartValorProjeto', filteredRows, 'projetoLabel', 'valorEmpenhadoUsd', '#0b7a75', true);
     drawBar('chartQtdSituacao', filteredRows, 'status', null, '#6f42c1', false);
     drawBar('chartValorSituacao', filteredRows, 'status', 'valorEmpenhadoUsd', '#8b5cc7', true);
-    if (pageMode === 'repairs') drawReturnByCompany();
+    if (pageMode === 'repairs') {
+      drawCustodyByCompany(filteredRows);
+      drawReturnByCompany();
+    }
   }
 
   function dateBr(value) {
@@ -555,12 +611,15 @@
       <td><strong>${esc(row.requisicao)}</strong></td>
       <td><strong>${esc(isOtherGroup ? (row.contratoOrigem || 'Não localizado') : (row.certame || 'Não informado'))}</strong></td>
       <td>${dispatchDescriptionCell(row)}</td>
-      <td><span class="proc-status">${esc(row.reparoAprovado || 'Não informado')}</span></td>
       <td class="proc-table__money">${esc(money(row.valorEmpenhadoUsd))}</td>
+      <td class="proc-table__money">${esc(money(row.valorReparavelUsd))}</td>
+      <td>${esc(dateBr(row.dataTdr))}</td>
+      <td>${esc(dateBr(row.dataAnaliseTdr))}</td>
+      <td><span class="proc-status">${esc(row.reparoAprovado || 'Não informado')}</span></td>
       <td>${esc(row.empresaVencedora)}</td>
       <td>${dispatchDaysCell(row, colorScale)}</td>
       <td class="proc-modal__observation">${esc(row.observacaoRequisicao || 'Não informado')}</td>
-    </tr>`).join('') : '<tr><td colspan="8" class="proc-empty">Nenhuma requisição nessa situação corresponde aos filtros aplicados.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="11" class="proc-empty">Nenhuma requisição nessa situação corresponde aos filtros aplicados.</td></tr>';
   }
 
   function openDispatchModal(event) {
@@ -739,7 +798,7 @@
     applyFilters();
   }
 
-  window.CABW_PROCESSOS_PANEL_TEST = { mapValidityValue, fieldValue, companyChartLabel, buildSupplierNames, normalizeSupplierLabels };
+  window.CABW_PROCESSOS_PANEL_TEST = { mapValidityValue, fieldValue, companyChartLabel, buildSupplierNames, normalizeSupplierLabels, isDispatchedToSupplier, isRepairableInSupplierCustody, custodySummary };
   document.addEventListener('DOMContentLoaded', () => {
     if (pageMode === 'landing') initLanding();
     if (pageMode === 'materials' || pageMode === 'repairs') initDashboard();
