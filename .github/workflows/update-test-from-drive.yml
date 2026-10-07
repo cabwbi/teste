@@ -3,7 +3,13 @@ name: SISCABW Teste - ZIP-base + dados do Google Drive
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 13 * * 1-5'
+    # Candidatos UTC para 13:00 e 23:30 em America/New_York.
+    # A etapa schedule_gate elimina a ocorrência que não corresponde ao horário local,
+    # permitindo acompanhar automaticamente EDT/EST.
+    - cron: '0 17 * * *'
+    - cron: '0 18 * * *'
+    - cron: '30 3 * * *'
+    - cron: '30 4 * * *'
   push:
     paths:
       - '.github/workflows/update-test-from-drive.yml'
@@ -37,15 +43,54 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = 'cabwbi/teste'
 
+      - name: Validar horário local do agendamento
+        id: schedule_gate
+        shell: bash
+        env:
+          SCHEDULE_EXPR: ${{ github.event.schedule }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+            echo "run_update=true" >> "$GITHUB_OUTPUT"
+            echo "Execução não agendada: atualização liberada."
+            exit 0
+          fi
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+
+          expr = os.environ.get("SCHEDULE_EXPR", "").strip()
+          mapping = {
+              "0 17 * * *": (17, 0),
+              "0 18 * * *": (18, 0),
+              "30 3 * * *": (3, 30),
+              "30 4 * * *": (4, 30),
+          }
+          hour, minute = mapping.get(expr, (-1, -1))
+          now = datetime.now(timezone.utc)
+          nominal = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+          local = nominal.astimezone(ZoneInfo("America/New_York"))
+          allowed = local.strftime("%H:%M") in {"13:00", "23:30"}
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"run_update={'true' if allowed else 'false'}\n")
+              out.write(f"local_nominal={local.isoformat()}\n")
+          print(f"Agendamento UTC: {expr}; horário local nominal: {local.isoformat()}; executar={allowed}")
+          PY
+
       - name: Configurar Python
+        if: steps.schedule_gate.outputs.run_update == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Instalar dependências
+        if: steps.schedule_gate.outputs.run_update == 'true'
         run: python -m pip install --disable-pip-version-check -r automation/requirements.txt
 
       - name: Preparar diretórios
+        if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -53,6 +98,7 @@ jobs:
           mkdir -p /tmp/siscabw-inputs /tmp/siscabw-candidate /tmp/siscabw-artifacts
 
       - name: Baixar ZIP-base e dez fontes do Google Drive
+        if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -66,6 +112,7 @@ jobs:
           cp /tmp/siscabw-inputs/zip_manifest.json /tmp/siscabw-artifacts/zip_manifest.json
 
       - name: Restaurar versão estrutural mais recente
+        if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -77,6 +124,7 @@ jobs:
           test -f /tmp/siscabw-candidate/automation/generate_data.py.gz.b64
 
       - name: Usar o gerador do próprio ZIP-base
+        if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -84,6 +132,7 @@ jobs:
           python -m py_compile /tmp/siscabw-generate.py
 
       - name: Atualizar dados do pacote-base
+        if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -93,6 +142,7 @@ jobs:
             | tee /tmp/siscabw-artifacts/generation-report.json
 
       - name: Validar dados e coerência
+        if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -245,7 +295,7 @@ jobs:
           PY
 
       - name: Guardar diagnóstico
-        if: always()
+        if: always() && steps.schedule_gate.outputs.run_update == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: siscabw-teste-${{ github.run_number }}
@@ -254,7 +304,7 @@ jobs:
           retention-days: 30
 
       - name: Aplicar o pacote-base atualizado no ambiente de teste
-        if: success()
+        if: steps.schedule_gate.outputs.run_update == 'true' && success()
         shell: bash
         run: |
           set -euo pipefail
@@ -265,7 +315,7 @@ jobs:
             /tmp/siscabw-candidate/ ./
 
       - name: Publicar no main de cabwbi/teste
-        if: success()
+        if: steps.schedule_gate.outputs.run_update == 'true' && success()
         shell: bash
         run: |
           set -euo pipefail
