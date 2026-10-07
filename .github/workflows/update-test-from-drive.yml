@@ -1,0 +1,157 @@
+name: SISCABW Teste - Atualizar dados do Google Drive
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 13 * * 1-5'
+  issues:
+    types: [opened, reopened]
+  push:
+    paths:
+      - '.github/workflows/update-test-from-drive.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: siscabw-teste-drive
+  cancel-in-progress: false
+
+jobs:
+  atualizar_teste:
+    if: >-
+      github.repository == 'cabwbi/teste' &&
+      (github.event_name != 'issues' || startsWith(github.event.issue.title, 'EXECUTAR ATUALIZACAO SISCABW TESTE'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DRIVE_INPUT_FOLDER_ID: '1OF-84Nnbfp0y9M-nPDDWQqeeYfjQma-c'
+      GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+
+    steps:
+      - name: Checkout do ambiente de teste
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bloquear execução fora de cabwbi/teste
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'cabwbi/teste' || exit 2
+
+      - name: Restaurar runtime da automação
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/siscabw-runtime
+          mkdir -p /tmp/siscabw-runtime
+          cat automation/runtime.part* | base64 -d | tar -xzf - -C /tmp/siscabw-runtime
+          test -f /tmp/siscabw-runtime/generate_data.py
+          test -f /tmp/siscabw-runtime/download_drive.py
+          test -f /tmp/siscabw-runtime/validate_candidate.py
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: python -m pip install --disable-pip-version-check -r /tmp/siscabw-runtime/requirements.txt
+
+      - name: Preparar diretórios
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/siscabw-inputs /tmp/siscabw-candidate /tmp/siscabw-artifacts
+          mkdir -p /tmp/siscabw-inputs /tmp/siscabw-candidate /tmp/siscabw-artifacts
+          rsync -a --exclude='.git/' ./ /tmp/siscabw-candidate/
+
+      - name: Baixar as 9 fontes do Google Drive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/siscabw-runtime/download_drive.py \
+            --folder-id "$DRIVE_INPUT_FOLDER_ID" \
+            --output /tmp/siscabw-inputs \
+            | tee /tmp/siscabw-artifacts/download.log
+          cp /tmp/siscabw-inputs/input_manifest.json /tmp/siscabw-artifacts/input_manifest.json
+
+      - name: Gerar dados candidatos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/siscabw-runtime/generate_data.py \
+            --inputs /tmp/siscabw-inputs \
+            --repo /tmp/siscabw-candidate \
+            | tee /tmp/siscabw-artifacts/generation-report.json
+
+      - name: Validar candidato contra a versão atual do teste
+        shell: bash
+        run: |
+          set -euo pipefail
+          python /tmp/siscabw-runtime/validate_candidate.py \
+            --candidate /tmp/siscabw-candidate \
+            --current "$GITHUB_WORKSPACE" \
+            --inputs /tmp/siscabw-inputs \
+            --config /tmp/siscabw-runtime/validation_config.json \
+            --allowlist /tmp/siscabw-runtime/generated_files.txt \
+            --report /tmp/siscabw-artifacts/validation-report.json
+
+      - name: Guardar diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: siscabw-teste-${{ github.run_number }}
+          path: /tmp/siscabw-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Aplicar somente arquivos de dados autorizados
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r rel; do
+            [ -n "$rel" ] || continue
+            mkdir -p "$(dirname "$rel")"
+            cp "/tmp/siscabw-candidate/$rel" "$rel"
+          done < /tmp/siscabw-runtime/generated_files.txt
+
+      - name: Confirmar allowlist
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git status --porcelain | sed -E 's/^.. //')
+          for rel in "${changed[@]}"; do
+            [ -z "$rel" ] && continue
+            if ! grep -Fxq "$rel" /tmp/siscabw-runtime/generated_files.txt; then
+              echo "Alteração não autorizada detectada: $rel"
+              exit 3
+            fi
+          done
+
+      - name: Publicar dados no main de cabwbi/teste
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          while IFS= read -r rel; do
+            [ -n "$rel" ] && git add -- "$rel"
+          done < /tmp/siscabw-runtime/generated_files.txt
+          if git diff --cached --quiet; then
+            echo 'Nenhuma alteração de dados encontrada.'
+            exit 0
+          fi
+          DATA_REF=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('data-update-status.json').read_text(encoding='utf-8'))
+          print(d.get('geradoEm','sem-data'))
+          PY
+          )
+          git commit -m "AUTO TESTE: atualiza dados SISCABW - $DATA_REF"
+          git push origin HEAD:main
