@@ -3,13 +3,17 @@ name: SISCABW Teste - ZIP-base + dados do Google Drive
 on:
   workflow_dispatch:
   schedule:
-    # Candidatos UTC para 00:00 e 12:00 em America/New_York.
-    # A etapa schedule_gate elimina a ocorrência que não corresponde ao horário local,
-    # permitindo acompanhar automaticamente EDT/EST.
+    # Horários principais para 00:00 e 12:00 em America/New_York.
+    # Há uma segunda tentativa 7 minutos depois para reduzir atrasos/perdas do scheduler.
+    # A etapa schedule_gate elimina automaticamente o candidato incorreto de EDT/EST.
     - cron: '0 4 * * *'
+    - cron: '7 4 * * *'
     - cron: '0 5 * * *'
+    - cron: '7 5 * * *'
     - cron: '0 16 * * *'
+    - cron: '7 16 * * *'
     - cron: '0 17 * * *'
+    - cron: '7 17 * * *'
   push:
     paths:
       - '.github/workflows/update-test-from-drive.yml'
@@ -63,15 +67,19 @@ jobs:
           expr = os.environ.get("SCHEDULE_EXPR", "").strip()
           mapping = {
               "0 4 * * *": (4, 0),
+              "7 4 * * *": (4, 7),
               "0 5 * * *": (5, 0),
+              "7 5 * * *": (5, 7),
               "0 16 * * *": (16, 0),
+              "7 16 * * *": (16, 7),
               "0 17 * * *": (17, 0),
+              "7 17 * * *": (17, 7),
           }
           hour, minute = mapping.get(expr, (-1, -1))
           now = datetime.now(timezone.utc)
           nominal = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
           local = nominal.astimezone(ZoneInfo("America/New_York"))
-          allowed = local.strftime("%H:%M") in {"00:00", "12:00"}
+          allowed = local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"run_update={'true' if allowed else 'false'}\n")
