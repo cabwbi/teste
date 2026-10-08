@@ -17,6 +17,7 @@ on:
   push:
     paths:
       - '.github/workflows/update-test-from-drive.yml'
+      - 'automation/download_drive.py'
 
 permissions:
   contents: write
@@ -291,6 +292,7 @@ jobs:
               'errors': errors,
               'warnings': warnings,
               'zipBase': z,
+              'ignoredExcelFiles': manifest.get('ignoredExcelFiles', []),
               'before': metrics_before,
               'after': metrics_after,
           }
