@@ -1,5 +1,11 @@
 # SISCABW — guia único de operação, atualização e publicação
 
+## Ajuste de 07/10/2026 — autonomia estimada dos contratos
+
+- A página 2 da consolidação para prestação de contas apresenta a autonomia estimada do saldo empenhado a liquidar com base na média mensal do exercício corrente e na média mensal do exercício anterior.
+- A autonomia é exibida em meses, com uma casa decimal. Valores menores que 1 mês ficam em vermelho, valores de 1 a 2 meses ficam em amarelo e valores superiores a 2 meses permanecem em azul.
+- Os indicadores acompanham o filtro por OM. Quando não existe média mensal positiva para a base de comparação, o resultado é apresentado como `N/D`.
+
 ## Ajuste de 05/10/2026 — ocorrências da prestação de contas
 
 - A consolidação para prestação de contas passou a apresentar, no primeiro slide de cada contrato, as ocorrências registradas na fonte `historico_obs`.
@@ -157,6 +163,21 @@ Os dados mantêm os aliases exigidos pelas páginas legadas, incluindo `contract
 4. Execute as verificações abaixo antes de compactar ou publicar.
 
 O script `automation/download_drive.py` pode preparar as fontes e o `input_manifest.json` em fluxos automatizados. O manifesto preserva o nome original e o `modifiedTime`, usado como referência temporal quando a planilha não contém metadado interno legível.
+
+### Atualização automática do ambiente de teste
+
+O workflow `.github/workflows/promote-tested-siscabw.yml` atualiza exclusivamente o repositório `cabwbi/teste`, branch `main`. Ele pode ser iniciado manualmente pelo GitHub Actions e também é executado de segunda a sexta-feira às 12:00 UTC.
+
+Fluxo protegido da automação:
+
+1. baixa do Google Drive as dez planilhas autorizadas, usando apenas o secret `GDRIVE_SERVICE_ACCOUNT_JSON`;
+2. cria uma cópia isolada da versão que já está homologada em `cabwbi/teste`;
+3. regenera os arquivos de dados nessa cópia;
+4. valida schemas, totais, escopo das requisições, espelhos existentes e integridade das páginas;
+5. bloqueia a execução se qualquer arquivo fora da allowlist de dados tiver sido alterado;
+6. publica somente os arquivos de dados validados na branch `main` de `cabwbi/teste`.
+
+A automação não baixa nem sobrepõe um ZIP-base, não altera código, layout, autenticação ou workflow durante uma atualização rotineira e não acessa o repositório de produção `cabwbi/SISCABW`. Falhas permanecem registradas no histórico da execução do GitHub Actions, sem criar commits de diagnóstico no site.
 
 ## Validação obrigatória
 
