@@ -58,6 +58,7 @@ def main() -> None:
     files = response.json().get("files", [])
     expected_by_stem = {Path(name).stem.lower(): name for name in EXPECTED}
     by_name: dict[str, list[dict]] = {}
+    ignored_excel: list[dict] = []
     for item in files:
         source = Path(item.get("name", ""))
         if source.suffix.lower() not in {".xls", ".xlsx"}:
@@ -66,13 +67,20 @@ def main() -> None:
         if canonical:
             by_name.setdefault(canonical, []).append(item)
         else:
-            by_name.setdefault(item["name"], []).append(item)
+            ignored_excel.append(item)
     missing = sorted(set(EXPECTED) - set(by_name))
-    extra = sorted(set(by_name) - set(EXPECTED))
-    if missing or extra:
-        raise SystemExit(f"Conteúdo não autorizado no Drive. Ausentes={missing}; extras={extra}")
+    if missing:
+        raise SystemExit(f"Fontes obrigatórias ausentes no Drive: {missing}")
     args.output.mkdir(parents=True, exist_ok=True)
-    manifest = {"folderId": args.folder_id, "files": []}
+    manifest = {
+        "folderId": args.folder_id,
+        "requiredFiles": list(EXPECTED),
+        "files": [],
+        "ignoredExcelFiles": [
+            {k: item.get(k) for k in ("id", "name", "modifiedTime", "size", "md5Checksum")}
+            for item in sorted(ignored_excel, key=lambda x: x.get("name", "").lower())
+        ],
+    }
     for name in EXPECTED:
         item = sorted(by_name[name], key=lambda x: x.get("modifiedTime", ""), reverse=True)[0]
         source_suffix = Path(item["name"]).suffix.lower()
@@ -147,7 +155,10 @@ def main() -> None:
             json.dumps(zip_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         print(f"ZIP-base selecionado: {selected['name']} ({selected.get('modifiedTime', '')})")
-    print(f"Dez planilhas baixadas em {args.output}")
+    if ignored_excel:
+        names = ", ".join(item.get("name", "") for item in ignored_excel)
+        print(f"Planilhas Excel adicionais ignoradas: {names}")
+    print(f"Dez planilhas obrigatórias baixadas em {args.output}")
 
 
 if __name__ == "__main__":
