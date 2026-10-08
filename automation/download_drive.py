@@ -72,14 +72,18 @@ def main() -> None:
     if missing:
         raise SystemExit(f"Fontes obrigatórias ausentes no Drive: {missing}")
     args.output.mkdir(parents=True, exist_ok=True)
+    ignored_latest: dict[str, dict] = {}
+    for item in ignored_excel:
+        key = Path(item.get("name", "")).name.lower()
+        previous = ignored_latest.get(key)
+        if previous is None or item.get("modifiedTime", "") > previous.get("modifiedTime", ""):
+            ignored_latest[key] = item
+
     manifest = {
         "folderId": args.folder_id,
         "requiredFiles": list(EXPECTED),
         "files": [],
-        "ignoredExcelFiles": [
-            {k: item.get(k) for k in ("id", "name", "modifiedTime", "size", "md5Checksum")}
-            for item in sorted(ignored_excel, key=lambda x: x.get("name", "").lower())
-        ],
+        "ignoredExcelFiles": [],
     }
     for name in EXPECTED:
         item = sorted(by_name[name], key=lambda x: x.get("modifiedTime", ""), reverse=True)[0]
@@ -106,6 +110,36 @@ def main() -> None:
             "canonicalName": name,
             "downloadedAs": target.name,
         })
+
+    if ignored_latest:
+        extras_dir = args.output / "extras"
+        extras_dir.mkdir(parents=True, exist_ok=True)
+        for item in sorted(ignored_latest.values(), key=lambda x: x.get("name", "").lower()):
+            safe_name = Path(item["name"]).name
+            source_suffix = Path(safe_name).suffix.lower()
+            target = extras_dir / safe_name
+            with session.get(
+                f"https://www.googleapis.com/drive/v3/files/{item['id']}",
+                params={"alt": "media", "supportsAllDrives": "true"},
+                stream=True,
+                timeout=300,
+            ) as download:
+                download.raise_for_status()
+                with target.open("wb") as handle:
+                    for block in download.iter_content(1024 * 1024):
+                        if block:
+                            handle.write(block)
+            signature = target.read_bytes()[:8]
+            if source_suffix == ".xlsx" and not signature.startswith(b"PK"):
+                raise SystemExit(f"Arquivo Excel adicional não é XLSX válido: {item['name']}")
+            if source_suffix == ".xls" and not signature.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+                raise SystemExit(f"Arquivo Excel adicional não é XLS válido: {item['name']}")
+            manifest["ignoredExcelFiles"].append({
+                **{k: item.get(k) for k in ("id", "name", "modifiedTime", "size", "md5Checksum")},
+                "downloadedAs": str(Path("extras") / safe_name),
+                "status": "available_for_future_generator",
+            })
+
     (args.output / "input_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -155,9 +189,9 @@ def main() -> None:
             json.dumps(zip_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         print(f"ZIP-base selecionado: {selected['name']} ({selected.get('modifiedTime', '')})")
-    if ignored_excel:
-        names = ", ".join(item.get("name", "") for item in ignored_excel)
-        print(f"Planilhas Excel adicionais ignoradas: {names}")
+    if manifest["ignoredExcelFiles"]:
+        names = ", ".join(item.get("name", "") for item in manifest["ignoredExcelFiles"])
+        print(f"Planilhas Excel adicionais disponíveis em extras/ e ignoradas pelo gerador atual: {names}")
     print(f"Dez planilhas obrigatórias baixadas em {args.output}")
 
 
