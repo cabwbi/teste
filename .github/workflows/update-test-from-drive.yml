@@ -81,15 +81,25 @@ jobs:
               "7 17 * * *": (17, 7),
           }
           hour, minute = mapping.get(expr, (-1, -1))
-          now = datetime.now(timezone.utc)
-          nominal = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-          local = nominal.astimezone(ZoneInfo("America/New_York"))
-          allowed = local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
+          now_utc = datetime.now(timezone.utc)
+          nominal = now_utc.replace(hour=hour, minute=minute, second=0, microsecond=0)
+          nominal_local = nominal.astimezone(ZoneInfo("America/New_York"))
+          actual_local = now_utc.astimezone(ZoneInfo("America/New_York"))
+
+          nominal_ok = nominal_local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
+          actual_minutes = actual_local.hour * 60 + actual_local.minute
+          in_midnight_window = 0 <= actual_minutes <= 20
+          in_noon_window = 12 * 60 <= actual_minutes <= 12 * 60 + 20
+          allowed = nominal_ok and (in_midnight_window or in_noon_window)
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"run_update={'true' if allowed else 'false'}\n")
-              out.write(f"local_nominal={local.isoformat()}\n")
-          print(f"Agendamento UTC: {expr}; horário local nominal: {local.isoformat()}; executar={allowed}")
+              out.write(f"local_nominal={nominal_local.isoformat()}\n")
+              out.write(f"local_actual={actual_local.isoformat()}\n")
+          print(
+              f"Agendamento UTC: {expr}; horário local nominal: {nominal_local.isoformat()}; "
+              f"horário local real: {actual_local.isoformat()}; executar={allowed}"
+          )
           PY
 
       - name: Configurar Python
