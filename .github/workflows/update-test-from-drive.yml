@@ -365,4 +365,6 @@ jobs:
           PY
           )
           git commit -m "AUTO TESTE: aplica $BASE_NAME e dados $DATA_REF"
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main
