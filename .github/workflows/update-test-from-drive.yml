@@ -2,6 +2,8 @@ name: SISCABW Teste - ZIP-base + dados do Google Drive
 
 on:
   workflow_dispatch:
+  issues:
+    types: [opened]
   schedule:
     # Horários principais para 00:00 e 12:00 em America/New_York.
     # Há uma segunda tentativa 7 minutos depois para reduzir atrasos/perdas do scheduler.
@@ -28,7 +30,9 @@ concurrency:
 
 jobs:
   atualizar_teste:
-    if: github.repository == 'cabwbi/teste'
+    if: >-
+      github.repository == 'cabwbi/teste' &&
+      (github.event_name != 'issues' || startsWith(github.event.issue.title, 'EXECUTAR ATUALIZACAO SISCABW TESTE'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
