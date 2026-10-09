@@ -16,6 +16,8 @@ on:
     - cron: '7 16 * * *'
     - cron: '0 17 * * *'
     - cron: '7 17 * * *'
+    # Teste pontual em 09/10/2026 as 09:30 EDT (13:30 UTC); remover apos verificacao.
+    - cron: '30 13 9 10 *'
   push:
     paths:
       - '.github/workflows/update-test-from-drive.yml'
@@ -79,6 +81,7 @@ jobs:
               "7 16 * * *": (16, 7),
               "0 17 * * *": (17, 0),
               "7 17 * * *": (17, 7),
+              "30 13 9 10 *": (13, 30),
           }
           hour, minute = mapping.get(expr, (-1, -1))
           now_utc = datetime.now(timezone.utc)
@@ -86,7 +89,8 @@ jobs:
           nominal_local = nominal.astimezone(ZoneInfo("America/New_York"))
           actual_local = now_utc.astimezone(ZoneInfo("America/New_York"))
 
-          nominal_ok = nominal_local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
+          nominal_ok = (nominal_local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
+                        or (expr == "30 13 9 10 *" and nominal_local.date().isoformat() == "2026-10-09"))
           # GitHub Actions pode atrasar cron por minutos ou horas.
           # A validade depende do horario nominal configurado, nunca da hora
           # em que o runner efetivamente inicia.
