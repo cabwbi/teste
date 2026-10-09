@@ -7,7 +7,7 @@ on:
   schedule:
     # Horários principais para 00:00 e 12:00 em America/New_York.
     # Há uma segunda tentativa 7 minutos depois para reduzir atrasos/perdas do scheduler.
-    # A etapa schedule_gate elimina automaticamente o candidato incorreto de EDT/EST.
+    # A etapa schedule_gate elimina o candidato incorreto de EDT/EST, sem rejeitar jobs atrasados.
     - cron: '0 4 * * *'
     - cron: '7 4 * * *'
     - cron: '0 5 * * *'
@@ -87,10 +87,10 @@ jobs:
           actual_local = now_utc.astimezone(ZoneInfo("America/New_York"))
 
           nominal_ok = nominal_local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
-          actual_minutes = actual_local.hour * 60 + actual_local.minute
-          in_midnight_window = 0 <= actual_minutes <= 20
-          in_noon_window = 12 * 60 <= actual_minutes <= 12 * 60 + 20
-          allowed = nominal_ok and (in_midnight_window or in_noon_window)
+          # GitHub Actions pode atrasar cron por minutos ou horas.
+          # A validade depende do horario nominal configurado, nunca da hora
+          # em que o runner efetivamente inicia.
+          allowed = nominal_ok
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"run_update={'true' if allowed else 'false'}\n")
