@@ -5,19 +5,18 @@ on:
   issues:
     types: [opened]
   schedule:
-    # Horários principais para 00:00 e 12:00 em America/New_York.
-    # Há uma segunda tentativa 7 minutos depois para reduzir atrasos/perdas do scheduler.
-    # A etapa schedule_gate elimina o candidato incorreto de EDT/EST, sem rejeitar jobs atrasados.
-    - cron: '0 4 * * *'
-    - cron: '7 4 * * *'
-    - cron: '0 5 * * *'
-    - cron: '7 5 * * *'
-    - cron: '0 16 * * *'
-    - cron: '7 16 * * *'
-    - cron: '0 17 * * *'
-    - cron: '7 17 * * *'
-    # Teste pontual em 09/10/2026 as 09:30 EDT (13:30 UTC); remover apos verificacao.
-    - cron: '30 13 9 10 *'
+    # Horários antecipados para 21:00 e 09:00 em America/New_York.
+    # Objetivo operacional: compensar os atrasos recorrentes do scheduler do GitHub
+    # para que a publicação tenda a ocorrer perto de 00:00 e 12:00.
+    # Há uma segunda tentativa 7 minutos depois e candidatos UTC para EDT/EST.
+    - cron: '0 1 * * *'
+    - cron: '7 1 * * *'
+    - cron: '0 2 * * *'
+    - cron: '7 2 * * *'
+    - cron: '0 13 * * *'
+    - cron: '7 13 * * *'
+    - cron: '0 14 * * *'
+    - cron: '7 14 * * *'
   push:
     paths:
       - '.github/workflows/update-test-from-drive.yml'
@@ -73,15 +72,14 @@ jobs:
 
           expr = os.environ.get("SCHEDULE_EXPR", "").strip()
           mapping = {
-              "0 4 * * *": (4, 0),
-              "7 4 * * *": (4, 7),
-              "0 5 * * *": (5, 0),
-              "7 5 * * *": (5, 7),
-              "0 16 * * *": (16, 0),
-              "7 16 * * *": (16, 7),
-              "0 17 * * *": (17, 0),
-              "7 17 * * *": (17, 7),
-              "30 13 9 10 *": (13, 30),
+              "0 1 * * *": (1, 0),
+              "7 1 * * *": (1, 7),
+              "0 2 * * *": (2, 0),
+              "7 2 * * *": (2, 7),
+              "0 13 * * *": (13, 0),
+              "7 13 * * *": (13, 7),
+              "0 14 * * *": (14, 0),
+              "7 14 * * *": (14, 7),
           }
           hour, minute = mapping.get(expr, (-1, -1))
           now_utc = datetime.now(timezone.utc)
@@ -89,8 +87,7 @@ jobs:
           nominal_local = nominal.astimezone(ZoneInfo("America/New_York"))
           actual_local = now_utc.astimezone(ZoneInfo("America/New_York"))
 
-          nominal_ok = (nominal_local.strftime("%H:%M") in {"00:00", "00:07", "12:00", "12:07"}
-                        or (expr == "30 13 9 10 *" and nominal_local.date().isoformat() == "2026-10-09"))
+          nominal_ok = nominal_local.strftime("%H:%M") in {"21:00", "21:07", "09:00", "09:07"}
           # GitHub Actions pode atrasar cron por minutos ou horas.
           # A validade depende do horario nominal configurado, nunca da hora
           # em que o runner efetivamente inicia.
