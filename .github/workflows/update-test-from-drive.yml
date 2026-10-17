@@ -214,6 +214,65 @@ jobs:
             --repo /tmp/siscabw-candidate \
             | tee /tmp/siscabw-artifacts/generation-report.json
 
+      - name: Renovar versão dos arquivos de dados no HTML
+        if: steps.schedule_gate.outputs.run_update == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path('/tmp/siscabw-candidate')
+          status = json.loads((root / 'data-update-status.json').read_text(encoding='utf-8'))
+          generated = str(status.get('geradoEm', '')).strip()
+          version = re.sub(r'[^0-9A-Za-z]+', '-', generated).strip('-') or 'atual'
+
+          data_names = (
+              'home-data.js',
+              'contracts-data.js',
+              'credit-data.js',
+              'compatibilizacao-data.js',
+              'processos-data.js',
+              'rp-data.js',
+              'suprimento-data.js',
+          )
+          names = '|'.join(re.escape(x) for x in data_names)
+          pattern = re.compile(
+              rf'(?P<prefix><script\\b[^>]*?\\bsrc=["\\\'])'
+              rf'(?P<url>[^"\\\']*(?:{names}))'
+              rf'(?:\\?[^"\\\']*)?'
+              rf'(?P<suffix>["\\\'][^>]*>)',
+              re.IGNORECASE,
+          )
+
+          changed_files = []
+          changed_refs = 0
+          for path in root.rglob('*.html'):
+              original = path.read_text(encoding='utf-8')
+              def repl(match):
+                  nonlocal_changed[0] += 1
+                  return f"{match.group('prefix')}{match.group('url')}?v={version}{match.group('suffix')}"
+              nonlocal_changed = [0]
+              updated = pattern.sub(repl, original)
+              if updated != original:
+                  path.write_text(updated, encoding='utf-8')
+                  changed_files.append(str(path.relative_to(root)))
+                  changed_refs += nonlocal_changed[0]
+
+          report = (
+              f"Versão de dados: {version}\\n"
+              f"Referências renovadas: {changed_refs}\\n"
+              + "\\n".join(changed_files)
+              + "\\n"
+          )
+          Path('/tmp/siscabw-artifacts/cache-busting.txt').write_text(report, encoding='utf-8')
+          print(report)
+          if changed_refs == 0:
+              raise SystemExit('Nenhuma referência a arquivo de dados foi encontrada nos HTMLs.')
+          PY
+
       - name: Validar dados e coerência
         if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
