@@ -159,18 +159,24 @@ jobs:
 
           path = Path('/tmp/siscabw-generate.py')
           source = path.read_text(encoding='utf-8')
-          old = "if cell.ctype==xlrd.XL_CELL_DATE:v=xlrd.xldate.xldate_as_datetime(v,wb.datemode)"
-          new = """if cell.ctype==xlrd.XL_CELL_DATE:
-                    try:v=xlrd.xldate.xldate_as_datetime(v,wb.datemode)
-                    except (OverflowError,ValueError):v=cell.value"""
-          if old in source:
-              source = source.replace(old, new)
+          target = "xlrd.xldate.xldate_as_datetime(v,wb.datemode)"
+          safe_call = "safe_xldate(v,wb.datemode)"
+          if target in source:
+              source = source.replace(target, safe_call)
+              helper = "\n".join([
+                  "def safe_xldate(v, datemode):",
+                  "    try:",
+                  "        return xlrd.xldate.xldate_as_datetime(v, datemode)",
+                  "    except (OverflowError, ValueError):",
+                  "        return v",
+              ])
+              source = source.replace("import xlrd\n", "import xlrd\n\n" + helper + "\n", 1)
               path.write_text(source, encoding='utf-8')
               print('Proteção aplicada para datas XLS inválidas.')
-          elif 'xldate_as_datetime' in source and 'OverflowError' not in source:
-              raise SystemExit('Gerador usa conversão XLS não reconhecida; proteção não aplicada.')
-          else:
+          elif 'safe_xldate(v,wb.datemode)' in source:
               print('Gerador já possui proteção para datas XLS inválidas.')
+          else:
+              raise SystemExit('Conversão XLS esperada não encontrada no gerador.')
           PY
           python -m py_compile /tmp/siscabw-generate.py
 
