@@ -154,6 +154,24 @@ jobs:
         run: |
           set -euo pipefail
           base64 -d /tmp/siscabw-candidate/automation/generate_data.py.gz.b64 | gzip -d > /tmp/siscabw-generate.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('/tmp/siscabw-generate.py')
+          source = path.read_text(encoding='utf-8')
+          old = "if cell.ctype==xlrd.XL_CELL_DATE:v=xlrd.xldate.xldate_as_datetime(v,wb.datemode)"
+          new = """if cell.ctype==xlrd.XL_CELL_DATE:
+                    try:v=xlrd.xldate.xldate_as_datetime(v,wb.datemode)
+                    except (OverflowError,ValueError):v=cell.value"""
+          if old in source:
+              source = source.replace(old, new)
+              path.write_text(source, encoding='utf-8')
+              print('Proteção aplicada para datas XLS inválidas.')
+          elif 'xldate_as_datetime' in source and 'OverflowError' not in source:
+              raise SystemExit('Gerador usa conversão XLS não reconhecida; proteção não aplicada.')
+          else:
+              print('Gerador já possui proteção para datas XLS inválidas.')
+          PY
           python -m py_compile /tmp/siscabw-generate.py
 
       - name: Atualizar dados do pacote-base
