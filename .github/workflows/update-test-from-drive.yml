@@ -177,6 +177,30 @@ jobs:
               print('Gerador já possui proteção para datas XLS inválidas.')
           else:
               raise SystemExit('Conversão XLS esperada não encontrada no gerador.')
+
+          normalizations = [
+              ("contract_ids={text(r.get('CONTRATO')) for r in contract_rows}",
+               "contract_ids={code_text(r.get('CONTRATO')) for r in contract_rows}"),
+              ("linked_to_contract=text(order.get('PAG')) in contract_ids",
+               "linked_to_contract=code_text(order.get('PAG')) in contract_ids"),
+              ("contract_key(r.get('CONTRATO')):text(r.get('CONTRATO'))",
+               "contract_key(r.get('CONTRATO')):code_text(r.get('CONTRATO'))"),
+              ("'contrato':text(r.get('CONTRATO'))",
+               "'contrato':code_text(r.get('CONTRATO'))"),
+              ("pag_from_order=text(r.get('PAG'))",
+               "pag_from_order=code_text(r.get('PAG'))"),
+              ("text(r.get('PAG')) in contract_ids",
+               "code_text(r.get('PAG')) in contract_ids"),
+              ("text(r.get('AÇÃO'))",
+               "code_text(r.get('AÇÃO'))"),
+          ]
+          applied = 0
+          for old, new in normalizations:
+              if old in source:
+                  source = source.replace(old, new)
+                  applied += 1
+          path.write_text(source, encoding='utf-8')
+          print(f'Normalização de identificadores aplicada em {applied} padrão(ões).')
           PY
           python -m py_compile /tmp/siscabw-generate.py
 
