@@ -19,6 +19,8 @@
   const actions=document.querySelector('#top-actions');
   if(actions)actions.innerHTML=(credit.principaisAcoes||[]).map(item=>`<div class="action-item"><b>Ação ${escapeHtml(item.acao||'Não informada')}</b><span>${money(item.valorRecebidoUsd)} (${Number(item.percentual||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%)</span></div>`).join('')||'<div class="action-item"><span>Sem dados disponíveis.</span></div>';
   const years=document.querySelector('#rp-years'),rpYears=(data.restosPagar||{}).anos||{};
+  const rpCurrentTotal=['2022','2023','2024','2025'].reduce((total,year)=>total+Number((rpYears[year]||{}).atual||0),0);
+  set('rpCurrentTotal',money(rpCurrentTotal));
   if(years)years.innerHTML=['2022','2023','2024','2025'].map(year=>{const item=rpYears[year]||{};return `<article class="rp-year"><h3>${year}</h3><dl><div><dt>Total inscrito</dt><dd>${money(item.inscrito)}</dd></div><div><dt>Saldo atual</dt><dd>${money(item.atual)}</dd></div><div><dt>Liquidado desde jan/${meta.ano||2026}</dt><dd>(${Number(item.percentualLiquidado||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%)</dd></div></dl></article>`;}).join('');
   function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));}
 })();
