@@ -160,5 +160,11 @@
         "atualizadoEm": "2026-11-04T17:39:12.664Z"
       }
     ]
-  }
+  },
+  "excelMaisRecente": {
+    "arquivo": "requisicoes.XLS",
+    "modificadoEmDrive": "2026-11-04T17:39:44.112Z",
+    "observacao": "Data de ultima modificacao no Google Drive; nao necessariamente criacao original do Excel"
+  },
+  "geradoEmUTC": "2026-11-04T18:49:01.019361+00:00"
 }
