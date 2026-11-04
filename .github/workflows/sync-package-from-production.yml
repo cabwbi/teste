@@ -1,0 +1,88 @@
+name: Equalizar pacote completo TESTE com produção
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/sync-package-from-production.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: siscabw-teste-sync-package
+  cancel-in-progress: false
+
+jobs:
+  equalizar:
+    if: github.repository == 'cabwbi/teste'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout do ambiente de teste
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Baixar versão atual da produção
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/siscabw-producao
+          git clone --depth 1 https://github.com/cabwbi/SISCABW.git /tmp/siscabw-producao
+          test -f /tmp/siscabw-producao/MANIFESTO_ARQUIVOS.txt
+          grep -q 'generateAdidanciasReport' /tmp/siscabw-producao/credit-panel.js
+          grep -q 'generateAdidanciasReport' /tmp/siscabw-producao/credito.html
+          test -f /tmp/siscabw-producao/automation/generate_data.py.gz.b64
+
+      - name: Aplicar arquivos do pacote de publicação
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .github/*|automation/*|auth.js|assets/js/processos-data.js|assets/data/contracts-summary.json)
+                continue
+                ;;
+            esac
+            test -f "/tmp/siscabw-producao/$path"
+            mkdir -p "$(dirname "$path")"
+            cp -f "/tmp/siscabw-producao/$path" "$path"
+          done < <(tail -n +5 /tmp/siscabw-producao/MANIFESTO_ARQUIVOS.txt)
+
+          cp -f /tmp/siscabw-producao/automation/generate_data.py.gz.b64 automation/generate_data.py.gz.b64
+
+          mkdir -p assets/js assets/data
+          cp -f processos-data.js assets/js/processos-data.js
+          cp -f contracts-summary.json assets/data/contracts-summary.json
+
+      - name: Validar pacote equalizado
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'generateAdidanciasReport' credit-panel.js
+          grep -q 'generateAdidanciasReport' credito.html
+          grep -q 'Relatório de execução das Adidâncias' credit-panel.js
+          test -s automation/generate_data.py.gz.b64
+          node --check credit-panel.js
+          node --check contracts-panel.js
+          node --check processos-panel.js
+          cmp -s processos-data.js assets/js/processos-data.js
+          cmp -s contracts-summary.json assets/data/contracts-summary.json
+
+      - name: Publicar pacote equalizado no main de teste
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo 'O ambiente de teste já está equalizado.'
+            exit 0
+          fi
+          git add -A
+          git commit -m 'Equaliza pacote de teste com versão atual de produção'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
