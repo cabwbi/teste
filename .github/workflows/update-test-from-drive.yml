@@ -174,6 +174,13 @@ jobs:
           cp /tmp/siscabw-candidate/contracts-summary.json /tmp/siscabw-candidate/assets/data/contracts-summary.json
           cp /tmp/siscabw-candidate/processos-data.js /tmp/siscabw-candidate/assets/js/processos-data.js
 
+      - name: Validar origem dos Excel e sincronizar metadados
+        if: steps.schedule_gate.outputs.run_update == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/finalize_update.py /tmp/siscabw-candidate /tmp/siscabw-inputs/input_manifest.json
+
       - name: Validar dados e coerência
         id: validate
         if: steps.schedule_gate.outputs.run_update == 'true'
