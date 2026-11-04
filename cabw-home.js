@@ -7,7 +7,12 @@
   const percent=value=>Number(value||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% do crédito recebido';
   const set=(key,value)=>document.querySelectorAll('[data-home="'+key+'"]').forEach(node=>node.textContent=value);
   const dateTime=value=>{const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);return match?`${match[3]}/${match[2]}/${match[1]} às ${match[4]}:${match[5]}:${match[6]}`:(value||'—');};
-  set('updatedAt',dateTime(meta.geradoEm));set('year',meta.ano||finance.ano||'—');
+  set('updatedAt',dateTime(meta.geradoEm));
+  (async function(){
+    const display=iso=>{const d=new Date(iso);return Number.isNaN(d.getTime())?'não disponível':new Intl.DateTimeFormat('pt-BR',{timeZone:'America/New_York',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d)+' (Nova York)';};
+    try{const r=await fetch('data-update-status.json?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('status');const s=await r.json();const entries=Object.values(s.paineis||{}).flat().filter(x=>x&&x.atualizadoEm);entries.sort((a,b)=>Date.parse(b.atualizadoEm)-Date.parse(a.atualizadoEm));if(entries.length){set('sourceAt',display(entries[0].atualizadoEm));set('sourceName',entries[0].arquivo||'Excel');}}catch(e){set('sourceAt','não disponível');}
+    try{const r=await fetch('https://api.github.com/repos/cabwbi/teste/deployments?environment=github-pages&per_page=5',{cache:'no-store'});if(!r.ok)throw Error('deploy');const deps=await r.json();for(const dep of deps){const q=await fetch('https://api.github.com/repos/cabwbi/teste/deployments/'+dep.id+'/statuses?per_page=10',{cache:'no-store'});if(!q.ok)continue;const statuses=await q.json();const ok=statuses.find(x=>x.state==='success');if(ok){set('deployAt',display(ok.created_at));return;}}set('deployAt','não disponível');}catch(e){set('deployAt','não disponível');}
+  })();set('year',meta.ano||finance.ano||'—');
   set('creditReceived',money(credit.creditoRecebidoUsd));set('creditAvailable',money(credit.creditoNaoEmpenhadoUsd??credit.creditoDisponivelUsd));set('creditCommitted',money(credit.creditoEmpenhadoUsd));set('creditLiquidated',money(credit.creditoLiquidadoUsd));
   set('creditReceivedPct','100,00% do crédito recebido');set('creditAvailablePct',percent(credit.percentualNaoEmpenhado));set('creditCommittedPct',percent(credit.percentualEmpenhado));set('creditLiquidatedPct',percent(credit.percentualLiquidado));
   set('contractsValue',money(contracts.valorContratadoUsd));set('contractsCommitted',money(contracts.valorEmpenhadoUsd));set('contractsBilled',money(contracts.valorFaturadoUsd));set('contractsCount',integer(contracts.quantidade));
