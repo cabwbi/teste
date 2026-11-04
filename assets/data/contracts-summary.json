@@ -8,14 +8,14 @@
   "totals": {
     "valorContrato": 1140513447.76,
     "totalEmpenhadoUsd": 667686297.89,
-    "totalFaturadoUsd": 564922327.57
+    "totalFaturadoUsd": 564923902.04
   },
   "byCategory": {
     "administrativos": {
       "count": 31,
       "valorContrato": 15082889.37,
       "totalEmpenhadoUsd": 12779091.63,
-      "totalFaturadoUsd": 11927391.73
+      "totalFaturadoUsd": 11928966.2
     },
     "finalisticos": {
       "count": 60,
