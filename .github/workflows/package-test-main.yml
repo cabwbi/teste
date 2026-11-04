@@ -1,0 +1,39 @@
+name: Gerar pacote completo da main de teste
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/package-test-main.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  empacotar:
+    if: github.repository == 'cabwbi/teste'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da main de teste
+        uses: actions/checkout@v4
+
+      - name: Preparar pacote completo
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/siscabw-package
+          mkdir -p /tmp/siscabw-package
+          rsync -a --exclude='.git/' ./ /tmp/siscabw-package/
+          test -f /tmp/siscabw-package/.github/workflows/update-test-from-drive.yml
+          test -f /tmp/siscabw-package/automation/generate_data.py.gz.b64
+          grep -q 'generateAdidanciasReport' /tmp/siscabw-package/credit-panel.js
+          grep -q 'generateAdidanciasReport' /tmp/siscabw-package/credito.html
+
+      - name: Disponibilizar pacote
+        uses: actions/upload-artifact@v4
+        with:
+          name: SISCABW_Pacote_TESTE_Main_04-11-2026
+          path: /tmp/siscabw-package/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
