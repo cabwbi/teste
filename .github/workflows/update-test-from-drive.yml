@@ -5,19 +5,18 @@ on:
   issues:
     types: [opened]
   schedule:
-    # Candidatos UTC para 04:00, 08:00, 12:00, 16:00 e 21:00
-    # em America/New_York. A trava local elimina automaticamente o
-    # candidato incorreto durante EDT/EST.
+    # 07:00, 12:00, 15:00 e 21:00 America/New_York.
+    # Pares UTC cobrem EDT/EST; a trava local escolhe o correto.
     - cron: '0 1 * * *'
     - cron: '0 2 * * *'
-    - cron: '0 8 * * *'
-    - cron: '0 9 * * *'
+    - cron: '0 11 * * *'
     - cron: '0 12 * * *'
-    - cron: '0 13 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 15 * * *'
     - cron: '0 16 * * *'
     - cron: '0 17 * * *'
+    - cron: '0 19 * * *'
     - cron: '0 20 * * *'
-    - cron: '0 21 * * *'
 
 permissions:
   contents: write
@@ -71,16 +70,11 @@ jobs:
 
           expr = os.environ.get("SCHEDULE_EXPR", "").strip()
           mapping = {
-              "0 1 * * *": (1, 0),
-              "0 2 * * *": (2, 0),
-              "0 8 * * *": (8, 0),
-              "0 9 * * *": (9, 0),
-              "0 12 * * *": (12, 0),
-              "0 13 * * *": (13, 0),
-              "0 16 * * *": (16, 0),
-              "0 17 * * *": (17, 0),
-              "0 20 * * *": (20, 0),
-              "0 21 * * *": (21, 0),
+              "0 1 * * *": (1, 0), "0 2 * * *": (2, 0),
+              "0 11 * * *": (11, 0), "0 12 * * *": (12, 0),
+              "0 14 * * *": (14, 0), "0 15 * * *": (15, 0),
+              "0 16 * * *": (16, 0), "0 17 * * *": (17, 0),
+              "0 19 * * *": (19, 0), "0 20 * * *": (20, 0),
           }
           hour, minute = mapping.get(expr, (-1, -1))
           now_utc = datetime.now(timezone.utc)
@@ -91,7 +85,7 @@ jobs:
               nominal = now_utc.replace(hour=hour, minute=minute, second=0, microsecond=0)
               nominal_local = nominal.astimezone(ZoneInfo("America/New_York"))
               allowed = nominal_local.strftime("%H:%M") in {
-                  "04:00", "08:00", "12:00", "16:00", "21:00"
+                  "07:00", "12:00", "15:00", "21:00"
               }
           actual_local = now_utc.astimezone(ZoneInfo("America/New_York"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
@@ -137,8 +131,22 @@ jobs:
           python automation/download_drive.py             --folder-id "$DRIVE_INPUT_FOLDER_ID"             --output /tmp/siscabw-inputs             | tee /tmp/siscabw-artifacts/download.log
           cp /tmp/siscabw-inputs/input_manifest.json /tmp/siscabw-artifacts/input_manifest.json
 
-      - name: Preparar gerador de dados
+      - name: Verificar se os Excel realmente mudaram
+        id: source_check
         if: steps.schedule_gate.outputs.run_update == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/check_source_changes.py /tmp/siscabw-inputs/input_manifest.json .siscabw-source-fingerprint.json | tee /tmp/siscabw-artifacts/source-check.json
+          if python -c 'import json; print(json.load(open("/tmp/siscabw-artifacts/source-check.json"))["changed"])' | grep -qx False; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Fontes sem alteracoes; nao gerar nem publicar."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Preparar gerador de dados
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -167,7 +175,7 @@ jobs:
 
       - name: Atualizar dados do pacote de teste
         id: generate
-        if: steps.schedule_gate.outputs.run_update == 'true'
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -177,7 +185,7 @@ jobs:
           cp /tmp/siscabw-candidate/processos-data.js /tmp/siscabw-candidate/assets/js/processos-data.js
 
       - name: Validar origem dos Excel e sincronizar metadados
-        if: steps.schedule_gate.outputs.run_update == 'true'
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -185,7 +193,7 @@ jobs:
 
       - name: Validar dados e coerência
         id: validate
-        if: steps.schedule_gate.outputs.run_update == 'true'
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -357,8 +365,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Registrar assinatura das fontes validadas
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true' && success()
+        shell: bash
+        run: |
+          cp /tmp/siscabw-artifacts/source-check.json /tmp/siscabw-candidate/.siscabw-source-fingerprint.json
+
       - name: Aplicar dados validados no ambiente de teste
-        if: steps.schedule_gate.outputs.run_update == 'true' && success()
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true' && success()
         shell: bash
         run: |
           set -euo pipefail
@@ -366,7 +380,7 @@ jobs:
 
       - name: Publicar no main de cabwbi/teste
         id: publish
-        if: steps.schedule_gate.outputs.run_update == 'true' && success()
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true' && success()
         shell: bash
         run: |
           set -euo pipefail
@@ -394,7 +408,7 @@ jobs:
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Notificar deploy confirmado no GitHub Mobile
-        if: always() && steps.schedule_gate.outputs.run_update == 'true'
+        if: always() && steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         uses: actions/github-script@v7
         env:
           PUBLISH_RESULT: ${{ steps.publish.outputs.result }}
