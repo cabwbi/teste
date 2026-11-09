@@ -34,7 +34,7 @@ jobs:
       github.repository == 'cabwbi/teste' &&
       (github.event_name != 'issues' || startsWith(github.event.issue.title, 'EXECUTAR ATUALIZACAO SISCABW TESTE'))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       DRIVE_INPUT_FOLDER_ID: '1OF-84Nnbfp0y9M-nPDDWQqeeYfjQma-c'
       GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
@@ -123,24 +123,13 @@ jobs:
           grep -q 'generateAdidanciasReport' /tmp/siscabw-candidate/credito.html
           test -f automation/generate_data.py.gz.b64
 
-      - name: Baixar as dez fontes obrigatórias do Google Drive
+      - name: Baixar fontes Excel do Google Drive
         if: steps.schedule_gate.outputs.run_update == 'true'
         shell: bash
         run: |
           set -euo pipefail
           python automation/download_drive.py             --folder-id "$DRIVE_INPUT_FOLDER_ID"             --output /tmp/siscabw-inputs             | tee /tmp/siscabw-artifacts/download.log
           cp /tmp/siscabw-inputs/input_manifest.json /tmp/siscabw-artifacts/input_manifest.json
-
-      - name: Diagnosticar estrutura do Extrato Conta
-        if: steps.schedule_gate.outputs.run_update == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f /tmp/siscabw-inputs/extras/Extrato_Conta.XLS ]; then
-            python automation/inspect_source_schema.py /tmp/siscabw-inputs/extras/Extrato_Conta.XLS | tee /tmp/siscabw-artifacts/extrato-schema.json
-          else
-            echo '{"status":"Extrato_Conta.XLS nao encontrado"}' | tee /tmp/siscabw-artifacts/extrato-schema.json
-          fi
 
       - name: Verificar se os Excel realmente mudaram
         id: source_check
@@ -184,16 +173,36 @@ jobs:
           PY
           python -m py_compile /tmp/siscabw-generate.py
 
-      - name: Atualizar dados do pacote de teste
+      - name: Atualizar dados primarios do pacote de teste
         id: generate
         if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          python /tmp/siscabw-generate.py             --inputs /tmp/siscabw-inputs             --repo /tmp/siscabw-candidate             | tee /tmp/siscabw-artifacts/generation-report.json
-          mkdir -p /tmp/siscabw-candidate/assets/data /tmp/siscabw-candidate/assets/js
-          cp /tmp/siscabw-candidate/contracts-summary.json /tmp/siscabw-candidate/assets/data/contracts-summary.json
-          cp /tmp/siscabw-candidate/processos-data.js /tmp/siscabw-candidate/assets/js/processos-data.js
+          python /tmp/siscabw-generate.py \
+            --inputs /tmp/siscabw-inputs \
+            --repo /tmp/siscabw-candidate \
+            | tee /tmp/siscabw-artifacts/generation-report.json
+
+      - name: Enriquecer credito e contratos
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/enrich_primary_data.py \
+            --inputs /tmp/siscabw-inputs \
+            --repo /tmp/siscabw-candidate \
+            | tee /tmp/siscabw-artifacts/enrich-primary-report.json
+
+      - name: Regenerar entrada processos e compatibilizacao
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/refresh_secondary_data.py \
+            --inputs /tmp/siscabw-inputs \
+            --repo /tmp/siscabw-candidate \
+            | tee /tmp/siscabw-artifacts/secondary-generation-report.json
 
       - name: Validar origem dos Excel e sincronizar metadados
         if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
@@ -202,7 +211,23 @@ jobs:
           set -euo pipefail
           python automation/finalize_update.py /tmp/siscabw-candidate /tmp/siscabw-inputs/input_manifest.json
 
-      - name: Validar dados e coerência
+      - name: Preparar lista e downloads das fontes
+        if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/siscabw-release-assets
+          mkdir -p /tmp/siscabw-release-assets
+          python automation/prepare_source_assets.py \
+            --inputs /tmp/siscabw-inputs \
+            --manifest /tmp/siscabw-inputs/input_manifest.json \
+            --repo /tmp/siscabw-candidate \
+            --assets /tmp/siscabw-release-assets \
+            --release-tag siscabw-fontes-teste \
+            --repo-full-name cabwbi/teste \
+            | tee /tmp/siscabw-artifacts/source-assets-report.json
+
+      - name: Validar dados e coerencia de todos os paineis
         id: validate
         if: steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
         shell: bash
@@ -215,11 +240,13 @@ jobs:
           cur = Path.cwd()
           cand = Path('/tmp/siscabw-candidate')
           inputs = Path('/tmp/siscabw-inputs')
+          assets = Path('/tmp/siscabw-release-assets')
           errors = []
           warnings = []
-
           prefixes = {
               'contracts-data.js': 'window.CABW_CONTRACTS_DATA = ',
+              'credit-data.js': 'window.CABW_CREDIT_DATA = ',
+              'compatibilizacao-data.js': 'window.CABW_COMPAT_DATA = ',
               'processos-data.js': 'window.CABW_PROCESSOS_DATA = ',
               'rp-data.js': 'window.CABW_RP_DATA = ',
               'suprimento-data.js': 'window.CABW_SUPRIMENTO_DATA = ',
@@ -233,15 +260,32 @@ jobs:
               t = (root / name).read_text(encoding='utf-8')
               p = prefixes[name]
               if not t.startswith(p) or not t.rstrip().endswith(';'):
-                  raise ValueError(f'Formato inválido: {name}')
+                  raise ValueError(f'Formato invalido: {name}')
               return json.loads(t[len(p):].rstrip()[:-1])
 
+          def close(a, b, tol=0.02):
+              return abs(float(a or 0) - float(b or 0)) <= tol
+
           manifest = j(inputs / 'input_manifest.json')
-          if len(manifest.get('files', [])) != 10:
-              errors.append(f"Esperadas 10 fontes obrigatórias; recebidas {len(manifest.get('files', []))}.")
-          canonical = [x.get('canonicalName') for x in manifest.get('files', [])]
+          required = manifest.get('files', [])
+          additional = manifest.get('ignoredExcelFiles', [])
+          if len(required) != 10:
+              errors.append(f'Esperadas 10 fontes obrigatorias; recebidas {len(required)}.')
+          canonical = [x.get('canonicalName') for x in required]
           if len(canonical) != len(set(canonical)):
-              errors.append('Fontes canônicas duplicadas no Drive.')
+              errors.append('Fontes canonicas duplicadas no Drive.')
+
+          source_manifest = j(cand / 'data-sources.json')
+          if len(source_manifest.get('files', [])) != len(required) + len(additional):
+              errors.append('Lista de fontes nao inclui todos os Excel baixados.')
+          for item in source_manifest.get('files', []):
+              for key in ('csvAsset', 'pdfAsset'):
+                  p = assets / item.get(key, '')
+                  if not p.is_file() or p.stat().st_size <= 0:
+                      errors.append(f'Asset ausente ou vazio: {item.get(key)}.')
+          zip_asset = assets / source_manifest.get('zipAsset', '')
+          if not zip_asset.is_file() or zip_asset.stat().st_size <= 0:
+              errors.append('ZIP consolidado das fontes ausente ou vazio.')
 
           summary = j(cand / 'contracts-summary.json')
           contracts_obj = js(cand, 'contracts-data.js')
@@ -250,6 +294,10 @@ jobs:
               errors.append('Total de contratos diverge da lista.')
           if summary['total'] != sum(summary['counts'].values()):
               errors.append('Soma das categorias diverge do total de contratos.')
+          required_contract_keys = {'liquidationDetailsByContract','occurrencesByContract','poDetails','invoiceMonthlyByContract'}
+          missing_contract_keys = sorted(required_contract_keys - set(contracts_obj))
+          if missing_contract_keys:
+              errors.append(f'Estruturas de contratos ausentes: {missing_contract_keys}.')
 
           expected = {'administrativos': 0, 'finalisticos': 0, 'fms': 0}
           ids = []
@@ -261,38 +309,90 @@ jobs:
               cat = 'fms' if cage == 'W2525' else ('administrativos' if command == 'CW' else 'finalisticos')
               expected[cat] += 1
               if item.get('categoria') != cat:
-                  errors.append(f'Classificação inconsistente no contrato {cid}.')
+                  errors.append(f'Classificacao inconsistente no contrato {cid}.')
                   break
           if not all(ids) or len(ids) != len(set(ids)):
-              errors.append('Há contrato sem ID ou ID duplicado.')
+              errors.append('Ha contrato sem ID ou ID duplicado.')
           if expected != summary['counts']:
-              errors.append(f"Categorias calculadas {expected} divergem de {summary['counts']}.")
+              errors.append(f'Categorias calculadas {expected} divergem de {summary["counts"]}.')
+
+          credit = js(cand, 'credit-data.js')
+          digits = credit.get('digits', [])
+          pos = credit.get('pos', credit.get('purchaseOrders', []))
+          signing = credit.get('signing', credit.get('signatureOrders', []))
+          if pos and not all('liquidadoNlUsd' in x and 'empenhadoNaoLiquidadoUsd' in x for x in pos):
+              errors.append('POs do credito sem campos de liquidacao.')
+          if signing and not all('isAmend' in x and 'omLabels' in x for x in signing):
+              errors.append('POs em assinatura sem enriquecimento de OM/aditamento.')
+          available_digits = sum(float(x.get('saldo', 0) or 0) for x in digits)
+          available_signing = sum(float(x.get('valorUsd', 0) or 0) for x in signing if not x.get('isAmend'))
+          available = available_digits + available_signing
+          committed = sum(float(x.get('valorUsd', 0) or 0) for x in pos)
+          liquidated = sum(float(x.get('liquidadoNlUsd', 0) or 0) for x in pos)
 
           home = js(cand, 'home-data.js')
-          if home['contratos']['quantidade'] != summary['total']:
+          hc = home.get('gestaoCredito', {})
+          if not close(hc.get('creditoDisponivelUsd'), available):
+              errors.append(f'Credito disponivel da entrada diverge do detalhe: {hc.get("creditoDisponivelUsd")} vs {available:.2f}.')
+          if not close(hc.get('creditoEmpenhadoUsd'), committed):
+              errors.append('Credito empenhado da entrada diverge das POs.')
+          if not close(hc.get('creditoLiquidadoUsd'), liquidated):
+              errors.append('Credito liquidado da entrada diverge das POs.')
+          if home.get('contratos', {}).get('quantidade') != summary['total']:
               errors.append('Card de contratos da entrada diverge do resumo.')
-          if home['contratos']['categorias'] != summary['counts']:
+          if home.get('contratos', {}).get('categorias') != summary['counts']:
               errors.append('Categorias do card de entrada divergem do resumo.')
 
           proc = js(cand, 'processos-data.js')
-          if proc['summary']['totalEscopo'] != len(proc.get('materials', [])) + len(proc.get('repairs', [])):
+          ps = proc.get('summary', {})
+          if ps.get('totalEscopo') != len(proc.get('materials', [])) + len(proc.get('repairs', [])):
               errors.append('Resumo de processos diverge das listas.')
+          if home.get('requisicoes', {}).get('materiais', {}).get('quantidade') != ps.get('materiais2026', {}).get('requisicoes'):
+              errors.append('Card de materiais da entrada diverge de processos-data.')
+          if home.get('requisicoes', {}).get('reparos', {}).get('quantidade') != ps.get('reparos2026', {}).get('requisicoes'):
+              errors.append('Card de reparos da entrada diverge de processos-data.')
+
+          compat = js(cand, 'compatibilizacao-data.js')
+          compat_saldo = float(compat.get('summary', {}).get('saldoDisponivel', 0) or 0)
+          if not close(compat_saldo, available_digits):
+              errors.append('Saldo da compatibilizacao diverge do saldo dos digitos.')
+          if len(compat.get('creditos', [])) != len(digits):
+              errors.append('Quantidade de creditos da compatibilizacao diverge de credit-data.')
 
           rp = js(cand, 'rp-data.js')
-          if rp['summary']['totalRegistros'] != len(rp.get('records', [])):
+          if rp.get('summary', {}).get('totalRegistros') != len(rp.get('records', [])):
               errors.append('Resumo de RP diverge dos registros.')
-
           sf = js(cand, 'suprimento-data.js')
+          if sf.get('summary', {}).get('totalOrders') != len(sf.get('orders', [])):
+              errors.append('Resumo de suprimento diverge das ordens.')
+
+          status = j(cand / 'data-update-status.json')
+          if 'compatibilizacao' not in status.get('paineis', {}):
+              errors.append('Status nao possui fontes da compatibilizacao.')
+          if status.get('processosResumo') != ps:
+              errors.append('Resumo de processos no status diverge de processos-data.')
+          if status.get('pagamentosResumo') != home.get('financas'):
+              errors.append('Resumo financeiro no status diverge de home-data.')
+
+          gov = (cand / 'governanca.html').read_text(encoding='utf-8')
+          if 'data-rp-current' not in gov or 'data-rp-count' not in gov or 'rp-data.js' not in gov:
+              errors.append('Governanca ainda possui indicador de RP nao vinculado a rp-data.')
+          sources_page = (cand / 'fontes-dados.html').read_text(encoding='utf-8')
+          if 'data-sources.json' not in sources_page or 'Baixar todas as planilhas em ZIP' not in sources_page:
+              errors.append('Pagina de fontes incompleta.')
+          for page in ('index.html','credito-menu.html','contratos.html','processos.html','governanca.html','suprimento-fundos.html'):
+              if 'fontes-dados.html' not in (cand / page).read_text(encoding='utf-8'):
+                  errors.append(f'Link para fontes ausente em {page}.')
+
           metrics_after = {
               'contracts_total': int(summary['total']),
               'administrativos': int(summary['counts']['administrativos']),
               'finalisticos': int(summary['counts']['finalisticos']),
               'fms': int(summary['counts']['fms']),
-              'processos': int(proc['summary']['totalEscopo']),
-              'rp': int(rp['summary']['totalRegistros']),
-              'sf': len(sf.get('orders', sf.get('records', []))),
+              'processos': int(ps.get('totalEscopo', 0)),
+              'rp': int(rp.get('summary', {}).get('totalRegistros', 0)),
+              'sf': len(sf.get('orders', [])),
           }
-
           try:
               old_summary = j(cur / 'contracts-summary.json')
               old_proc = js(cur, 'processos-data.js')
@@ -308,13 +408,9 @@ jobs:
                   'sf': len(old_sf.get('orders', old_sf.get('records', []))),
               }
               limits = {
-                  'contracts_total': (0.10, 0.25),
-                  'administrativos': (0.25, 0.50),
-                  'finalisticos': (0.20, 0.40),
-                  'fms': (0.10, 0.20),
-                  'processos': (0.15, 0.30),
-                  'rp': (0.25, 0.35),
-                  'sf': (0.25, 0.50),
+                  'contracts_total': (0.10, 0.25), 'administrativos': (0.25, 0.50),
+                  'finalisticos': (0.20, 0.40), 'fms': (0.10, 0.20),
+                  'processos': (0.15, 0.30), 'rp': (0.25, 0.35), 'sf': (0.25, 0.50),
               }
               for key, before in metrics_before.items():
                   after = metrics_after[key]
@@ -326,38 +422,42 @@ jobs:
                   if (after - before) / before > max_growth:
                       errors.append(f'Crescimento anormal em {key}: {before} -> {after}.')
           except Exception as exc:
-              warnings.append(f'Comparação com versão anterior não executada: {exc}')
+              warnings.append(f'Comparacao com versao anterior nao executada: {exc}')
               metrics_before = {}
 
           for name in (
-              'contracts-data.js', 'credit-data.js', 'compatibilizacao-data.js',
-              'processos-data.js', 'rp-data.js', 'suprimento-data.js',
-              'home-data.js', 'credit-panel.js'
+              'contracts-data.js','credit-data.js','compatibilizacao-data.js','processos-data.js',
+              'rp-data.js','suprimento-data.js','home-data.js','credit-panel.js','contracts-panel.js',
+              'processos-panel.js','rp-panel.js','suprimento-fundos.js','compatibilizacao-panel.js'
           ):
-              result = subprocess.run(['node', '--check', str(cand / name)], capture_output=True, text=True)
+              result = subprocess.run(['node','--check',str(cand / name)],capture_output=True,text=True)
               if result.returncode:
-                  errors.append(f'Sintaxe JavaScript inválida em {name}: {result.stderr.strip()}')
-
-          if 'generateAdidanciasReport' not in (cand / 'credit-panel.js').read_text(encoding='utf-8'):
-              errors.append('Relatório das Adidâncias ausente de credit-panel.js.')
-          if 'generateAdidanciasReport' not in (cand / 'credito.html').read_text(encoding='utf-8'):
-              errors.append('Botão do relatório das Adidâncias ausente de credito.html.')
+                  errors.append(f'Sintaxe JavaScript invalida em {name}: {result.stderr.strip()}')
 
           mirrors = {
-              'contracts-summary.json': 'assets/data/contracts-summary.json',
-              'processos-data.js': 'assets/js/processos-data.js',
+              'contracts-data.js':'assets/js/contracts-data.js',
+              'credit-data.js':'assets/js/credit-data.js',
+              'processos-data.js':'assets/js/processos-data.js',
+              'rp-data.js':'assets/js/rp-data.js',
+              'suprimento-data.js':'assets/js/suprimento-data.js',
+              'contracts-summary.json':'assets/data/contracts-summary.json',
+              'data-update-status.json':'assets/data/data-update-status.json',
+              'data-sources.json':'assets/data/data-sources.json',
           }
           for source, mirror in mirrors.items():
-              if (cand / source).read_bytes() != (cand / mirror).read_bytes():
+              if not (cand / mirror).is_file() or (cand / source).read_bytes() != (cand / mirror).read_bytes():
                   errors.append(f'Espelho divergente: {source} / {mirror}.')
 
           report = {
               'status': 'ok' if not errors else 'failed',
               'errors': errors,
               'warnings': warnings,
-              'ignoredExcelFiles': manifest.get('ignoredExcelFiles', []),
+              'requiredSources': len(required),
+              'additionalSources': len(additional),
               'before': metrics_before,
               'after': metrics_after,
+              'creditAvailable': round(available, 2),
+              'creditLiquidated': round(liquidated, 2),
           }
           Path('/tmp/siscabw-artifacts/validation-report.json').write_text(
               json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
@@ -417,6 +517,25 @@ jobs:
           git push origin HEAD:main
           echo "result=updated" >> "$GITHUB_OUTPUT"
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar downloads das fontes na release estavel
+        if: steps.publish.outputs.result == 'updated' && success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG='siscabw-fontes-teste'
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target main \
+              --title 'Fontes de dados SISCABW TESTE' \
+              --notes 'Assets atualizados automaticamente pelo workflow do ambiente de teste.'
+          fi
+          gh release upload "$TAG" /tmp/siscabw-release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
 
       - name: Notificar deploy confirmado no GitHub Mobile
         if: always() && steps.schedule_gate.outputs.run_update == 'true' && steps.source_check.outputs.changed == 'true'
