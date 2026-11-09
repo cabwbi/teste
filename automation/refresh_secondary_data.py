@@ -475,7 +475,8 @@ def main() -> None:
     for row in nl_rows:
         dt = as_date(get(row, "DATA"))
         value = money(get(row, "VALOR PAGO NO PEDIDO"))
-        if dt and dt.year == current_year and value > 0:
+        nl_pgto = code(get(row, "NL PGTO", "NL_PGTO", "NL"))
+        if dt and dt.year == current_year and value > 0 and nl_pgto:
             paid_rows.append((row, dt, value))
 
     providers_all: set[str] = set()
@@ -502,16 +503,24 @@ def main() -> None:
         value, dt, po, supplier, nl, _ = max(recent, key=lambda x: x[0])
         largest = {"fornecedor": supplier or "Não informado", "valorUsd": money(value), "nl": nl, "data": dt.isoformat(), "po": po}
 
-    # Home data, agora sempre derivado dos arquivos recém-gerados.
+    # Home data: mesma regra da visão detalhada de crédito.
     credit_digits = credit.get("digits", [])
-    received = money(sum(number(x.get("dotacao")) for x in credit_digits))
-    available = money(sum(number(x.get("saldo")) for x in credit_digits))
-    committed = money(max(0.0, received - available))
-    liquidated = money(sum(number(x.get("liquidadoNlUsd")) for x in credit.get("pos", [])))
+    valid_signing = [
+        x for x in credit.get("signing", credit.get("signatureOrders", []))
+        if not x.get("isAmend") and not re.match(r"^AMEND\\b", text(x.get("alteracao") or x.get("objetoResumo")), re.I)
+    ]
+    available_digits = money(sum(number(x.get("saldo")) for x in credit_digits))
+    signing_available = money(sum(number(x.get("valorUsd")) for x in valid_signing))
+    available = money(available_digits + signing_available)
+    committed = money(sum(number(x.get("valorUsd")) for x in credit.get("pos", credit.get("purchaseOrders", [])))
+    liquidated = money(sum(number(x.get("liquidadoNlUsd")) for x in credit.get("pos", credit.get("purchaseOrders", [])))
     committed_open = money(max(0.0, committed - liquidated))
+    received = money(available + committed)
     by_action: dict[str, float] = defaultdict(float)
     for d in credit_digits:
         by_action[code(d.get("acao")) or "Não informado"] += number(d.get("dotacao"))
+    for x in valid_signing:
+        by_action[code(x.get("acao")) or "Não informado"] += number(x.get("valorUsd"))
     top_actions = [
         {"acao": k, "valorRecebidoUsd": money(v), "percentual": round(v / received * 100, 2) if received else 0.0}
         for k, v in sorted(by_action.items(), key=lambda kv: kv[1], reverse=True)[:3]
@@ -526,7 +535,7 @@ def main() -> None:
     sf_people = len({code(x.get("empresaCodigo")) for x in sf_orders_current if code(x.get("empresaCodigo"))})
 
     home = {
-        "meta": {"geradoEm": generated_at, "ano": current_year, "fonte": "SISCAB - geração automática integral"},
+        "meta": {"geradoEm": generated_at, "ano": current_year, "fonte": "SISCAB"},
         "gestaoCredito": {
             "creditoRecebidoUsd": received,
             "creditoDisponivelUsd": available,
@@ -566,7 +575,7 @@ def main() -> None:
             "empresasPagas": len(providers_all),
             "empresasPagasElegiveis": len(providers_eligible),
             "maiorPagamentoUltimos30Dias": largest,
-            "fonte": "NL_requisicao.xlsx + última versão da PO em ordem_de_compra.xlsx",
+            "fonte": "NL_requisicao.xlsx (NL PGTO preenchida) + última versão da PO em ordem_de_compra.xlsx",
             "criterioEmpresasElegiveis": "Fornecedor vinculado a contrato ou a requisição com CERTAME SILOMS preenchido.",
         },
         "suprimentoFundos": {
@@ -577,6 +586,55 @@ def main() -> None:
             "pessoasAtendidas": sf_people,
         },
     }
+    # Atualizar o status de todas as visões conforme o contrato da produção.
+    source_map = {}
+    for entries in status.get("paineis", {}).values():
+        for entry in entries:
+            source_map[Path(entry.get("arquivo", "")).stem.lower()] = entry.get("atualizadoEm", generated_at)
+
+    def source_entry(name: str) -> dict[str, str]:
+        return {"arquivo": name, "atualizadoEm": source_map.get(Path(name).stem.lower(), generated_at)}
+
+    status["processosResumo"] = process_data["summary"]
+    status["pagamentosResumo"] = home["financas"]
+    status["paineis"] = {
+        "entrada": [source_entry(x) for x in (
+            "NL_requisicao.XLS", "ordem_de_compra_em_assinatura.XLS", "controle_financeiro_contratos.XLS",
+            "descricao_OM.XLS", "descricao_projetos.XLS", "digitos.XLS", "historico_obs.XLS",
+            "ordem_de_compra.XLS", "requisicoes.XLS", "volumes.XLS"
+        )],
+        "contratos": [source_entry(x) for x in (
+            "controle_financeiro_contratos.XLS", "historico_obs.XLS", "ordem_de_compra.XLS",
+            "NL_requisicao.XLS", "requisicoes.XLS"
+        )],
+        "credito": [source_entry(x) for x in (
+            "digitos.XLS", "ordem_de_compra.XLS", "ordem_de_compra_em_assinatura.XLS",
+            "descricao_OM.XLS", "descricao_projetos.XLS", "requisicoes.XLS", "NL_requisicao.XLS"
+        )],
+        "compatibilizacao": [source_entry(x) for x in (
+            "digitos.XLS", "requisicoes.XLS", "descricao_OM.XLS", "descricao_projetos.XLS"
+        )],
+        "processos": [source_entry(x) for x in (
+            "requisicoes.XLS", "ordem_de_compra.XLS", "digitos.XLS", "descricao_OM.XLS",
+            "descricao_projetos.XLS", "controle_financeiro_contratos.XLS", "historico_obs.XLS"
+        )],
+        "governanca": [source_entry(x) for x in (
+            "digitos.XLS", "ordem_de_compra.XLS", "requisicoes.XLS", "descricao_OM.XLS",
+            "descricao_projetos.XLS", "NL_requisicao.XLS", "controle_financeiro_contratos.XLS"
+        )],
+        "rp": [source_entry(x) for x in (
+            "ordem_de_compra.XLS", "NL_requisicao.XLS", "requisicoes.XLS", "descricao_OM.XLS",
+            "controle_financeiro_contratos.XLS"
+        )],
+        "suprimento": [source_entry(x) for x in (
+            "ordem_de_compra.XLS", "digitos.XLS", "descricao_OM.XLS", "descricao_projetos.XLS"
+        )],
+    }
+    status_text = json.dumps(status, ensure_ascii=False, indent=2) + "\n"
+    for target in (repo / "data-update-status.json", repo / "assets" / "data" / "data-update-status.json"):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(status_text, encoding="utf-8")
+
     if status.get("excelMaisRecente"):
         home["meta"]["excelMaisRecente"] = status["excelMaisRecente"]
     if status.get("geradoEmUTC"):
