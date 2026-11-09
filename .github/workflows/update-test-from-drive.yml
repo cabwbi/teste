@@ -131,6 +131,17 @@ jobs:
           python automation/download_drive.py             --folder-id "$DRIVE_INPUT_FOLDER_ID"             --output /tmp/siscabw-inputs             | tee /tmp/siscabw-artifacts/download.log
           cp /tmp/siscabw-inputs/input_manifest.json /tmp/siscabw-artifacts/input_manifest.json
 
+      - name: Diagnosticar estrutura do Extrato Conta
+        if: steps.schedule_gate.outputs.run_update == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/siscabw-inputs/extras/Extrato_Conta.XLS ]; then
+            python automation/inspect_source_schema.py /tmp/siscabw-inputs/extras/Extrato_Conta.XLS | tee /tmp/siscabw-artifacts/extrato-schema.json
+          else
+            echo '{"status":"Extrato_Conta.XLS nao encontrado"}' | tee /tmp/siscabw-artifacts/extrato-schema.json
+          fi
+
       - name: Verificar se os Excel realmente mudaram
         id: source_check
         if: steps.schedule_gate.outputs.run_update == 'true'
