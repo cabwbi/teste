@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Compare the ten selected Drive files with the last published source snapshot."""
+"""Compara todas as fontes Excel baixadas com a ultima assinatura publicada."""
 import json
 import sys
 from pathlib import Path
 
 manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 previous_path = Path(sys.argv[2])
-files = manifest.get("files", [])
-if len(files) != 10 or len({f.get("canonicalName") for f in files}) != 10:
+required = manifest.get("files", [])
+extras = manifest.get("ignoredExcelFiles", [])
+if len(required) != 10 or len({f.get("canonicalName") for f in required}) != 10:
     raise SystemExit("Invalid Drive manifest: expected ten unique canonical sources")
 
+
 def fingerprint(f):
-    # Content checksum preferred; timestamps catch changes where Drive has no MD5.
     return {
         "id": f.get("id"),
         "name": f.get("name"),
@@ -20,10 +21,19 @@ def fingerprint(f):
         "size": f.get("size"),
     }
 
-current = {f["canonicalName"]: fingerprint(f) for f in files}
+
+current = {}
+for f in required:
+    current["required:" + str(f["canonicalName"])] = fingerprint(f)
+for f in extras:
+    key = "additional:" + str(f.get("name", "")).lower()
+    current[key] = fingerprint(f)
+
 previous = {}
 if previous_path.exists():
     previous = json.loads(previous_path.read_text(encoding="utf-8")).get("sources", {})
+
+
 def materially_changed(old, new):
     if not old:
         return True
@@ -31,7 +41,6 @@ def materially_changed(old, new):
         return True
     for name, now in new.items():
         before = old[name]
-        # When both MD5 values exist, content identity is authoritative.
         if before.get("md5Checksum") and now.get("md5Checksum"):
             if before["md5Checksum"] != now["md5Checksum"]:
                 return True
@@ -41,5 +50,11 @@ def materially_changed(old, new):
             return True
     return False
 
+
 changed = materially_changed(previous, current)
-print(json.dumps({"changed": changed, "sources": current}, sort_keys=True))
+print(json.dumps({
+    "changed": changed,
+    "sources": current,
+    "requiredCount": len(required),
+    "additionalCount": len(extras),
+}, sort_keys=True))
