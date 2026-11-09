@@ -295,6 +295,12 @@ def main() -> None:
             "omLabel": om_label, "sigla": om_label.split(" - ", 1)[0] if om_label else om_code,
             "gcDescricao": text(row.get("GC DESCRIÇÃO")), "grandComando": text(row.get("GRANDE COMANDO")), "projetosLabels": labels,
         })
+    nl_paid_by_po: dict[str, float] = defaultdict(float)
+    for nl_row in tables["NL_requisicao.xlsx"]:
+        nl_po = text(nl_row.get("PO"))
+        if nl_po:
+            nl_paid_by_po[nl_po] += money(nl_row.get("VALOR PAGO NO PEDIDO"))
+
     current_pos = []
     for row in orders:
         po = text(row.get("PO"))
@@ -308,6 +314,8 @@ def main() -> None:
             "fornecedor": unique_join([supplier_code, supplier_name], " - "), "nomeFornecedor": supplier_name,
             "qtdItens": int(number(row.get("QTD ITENS"))), "projeto": project, "projetoLabel": project_label(project),
             "moeda": text(row.get("MOEDA")), "valorUsd": money(row.get("VAL TOT USD")), "faturadoUsd": money(row.get("TOT FATUR USD")),
+            "liquidadoNlUsd": money(min(max(0.0, nl_paid_by_po.get(po, 0.0)), max(0.0, money(row.get("VAL TOT USD"))))),
+            "empenhadoNaoLiquidadoUsd": money(max(0.0, money(row.get("VAL TOT USD")) - min(max(0.0, nl_paid_by_po.get(po, 0.0)), max(0.0, money(row.get("VAL TOT USD")))))),
             "saldoUsd": money(row.get("SALDO USD")), "ne": text(row.get("NE")), "pag": text(row.get("PAG")),
             "acao": text(row.get("AÇÃO")), "modalidade": text(row.get("MODALIDADE")), "natureza": text(row.get("ND")),
             "subelemento": text(row.get("SD")), "ugr": text(row.get("UGR")), "om": om_label,
