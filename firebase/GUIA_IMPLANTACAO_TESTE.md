@@ -35,3 +35,12 @@ Firebase Authentication protege a identidade, mas **nao protege** arquivos `.js`
 ## Estado do deploy
 
 Este diretorio nao e referenciado pelas paginas atuais. O workflow continua independente e o login anterior permanece ativo.
+
+## Decisao atualizada: somente quatro usuarios existentes
+
+- Nao criar CABW1 a CABW50. Migrar apenas as quatro contas ja existentes.
+- O campo da interface sera **Usuario ou e-mail**. E-mail informado diretamente sera enviado ao Firebase Authentication.
+- Para nome de usuario, manter uma tabela publica somente com o identificador e o e-mail correspondente, **sem senha**. Essa opcao revela os e-mails associados; usar somente com autorizacao e se nao forem sigilosos.
+- Como alternativa de privacidade, usar um resolvedor autenticado no servidor; nao consultar publicamente uma base de e-mails por nome de usuario.
+- Criar as quatro contas em Firebase Authentication > Users > Add user, com e-mails validos definidos pelo administrador. Para manter as senhas atuais, sera necessario defini-las no cadastro; como ja estiveram no codigo publico, recomenda-se rotaciona-las.
+- Nao ativar o novo login nem remover o legado ate que as quatro contas tenham sido testadas.
