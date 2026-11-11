@@ -52,3 +52,13 @@ Este diretorio nao e referenciado pelas paginas atuais. O workflow continua inde
 - Nao criar aliases artificiais, enderecos inexistentes ou contas adicionais sem confirmacao do responsavel.
 - Aguardar escolha entre (a) quatro e-mails de autenticacao exclusivos, mantendo este endereco como contato administrativo, ou (b) uma unica conta Firebase compartilhada, que nao preserva identidades e revogacao individual.
 - Nenhuma alteracao no login publicado enquanto a decisao estiver pendente.
+
+## Nova politica solicitada: acesso por dominio institucional (pendente de implementacao)
+
+- Qualquer titular que comprove controle de endereco cujo dominio seja **exatamente** `fab.mil.br` podera acessar o painel, sem lista fechada de quatro usuarios.
+- Verificar e-mail confirmado e dominio no token autenticado; nao confiar apenas no texto digitado nem em verificacao JavaScript como controle de seguranca de arquivos.
+- Para fluxo sem senha, considerar Firebase Authentication Email Link e habilitar Email Link no console, com dominio autorizado e configuracao adequada de retorno ao GitHub Pages. A ativacao de Email/Password isoladamente nao habilita necessariamente Email Link.
+- Firebase Authentication Email Link e autenticacao por e-mail, **nao** segundo fator apos senha. Se exigir senha + codigo por e-mail, sera necessario fluxo de backend especifico.
+- Nao habilitar autocadastro indiscriminado por Email/Password sem bloqueio server-side para impedir contas fora do dominio; verificacao de dominio no frontend nao bloqueia criacao de contas externas no Firebase.
+- GitHub Pages publica os arquivos estaticos; esta fase nao protege arquivos de dados por URL direta.
+- Estado: politica documentada; login legado preservado; nenhuma alteracao de producao ou login ativo.
