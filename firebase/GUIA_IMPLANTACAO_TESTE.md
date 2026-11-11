@@ -69,3 +69,15 @@ Este diretorio nao e referenciado pelas paginas atuais. O workflow continua inde
 - Cadastro: solicitar email e senha, criar conta com Firebase Auth, enviar verificacao de email; negar acesso ao painel ate `emailVerified === true` e dominio exato `fab.mil.br`.
 - Controles apenas no cliente **nao** impedem criacao de contas Firebase com dominios externos nem acesso direto aos arquivos publicos do GitHub Pages. Para restringir o cadastro no backend, configurar bloqueio de signup via Identity Platform blocking functions (se disponivel), ou backend de cadastro controlado, e regras de autorizacao para recursos protegidos.
 - Nao ativar fluxo novo sem validar requisitos, custos e configuracao server-side. Preservar login legado e workflow Drive/GitHub ate corte autorizado.
+
+## Aprovacao formal da estrategia
+
+O responsavel aprovou: autocadastro para titulares de e-mail exatamente `@fab.mil.br`, verificacao do e-mail no primeiro acesso e logins posteriores com e-mail e senha. Nao exige segundo fator por e-mail em cada acesso. Aprovacao da estrategia **nao** equivale a autorizacao para ativar fluxo inseguro antes de controles e testes.
+
+### Pre-requisitos de ativacao
+
+1. Definir implementacao server-side para restringir o cadastro ao dominio institucional e controlar abuso; Firebase Auth Email/Password isolado nao faz isso.
+2. Configurar dominio autorizado e templates de e-mail de verificacao e recuperacao.
+3. Implementar pagina de cadastro/login com SDK Firebase, bloqueando liberacao antes de `emailVerified`.
+4. Testar e-mail institucional valido, e-mail externo, nao verificado, senha incorreta, recuperacao, logout e persistencia.
+5. Fazer corte somente depois de testes e plano de reversao. O login atual continua ativo ate entao.
