@@ -62,3 +62,10 @@ Este diretorio nao e referenciado pelas paginas atuais. O workflow continua inde
 - Nao habilitar autocadastro indiscriminado por Email/Password sem bloqueio server-side para impedir contas fora do dominio; verificacao de dominio no frontend nao bloqueia criacao de contas externas no Firebase.
 - GitHub Pages publica os arquivos estaticos; esta fase nao protege arquivos de dados por URL direta.
 - Estado: politica documentada; login legado preservado; nenhuma alteracao de producao ou login ativo.
+
+## Fluxo aprovado em 2026-11-11: primeiro acesso com verificacao, seguintes com senha
+
+- Politica desejada: qualquer titular de email exatamente `@fab.mil.br` pode se cadastrar, apos verificar posse da caixa postal; acessos posteriores por email + senha, sem codigo por email em cada login.
+- Cadastro: solicitar email e senha, criar conta com Firebase Auth, enviar verificacao de email; negar acesso ao painel ate `emailVerified === true` e dominio exato `fab.mil.br`.
+- Controles apenas no cliente **nao** impedem criacao de contas Firebase com dominios externos nem acesso direto aos arquivos publicos do GitHub Pages. Para restringir o cadastro no backend, configurar bloqueio de signup via Identity Platform blocking functions (se disponivel), ou backend de cadastro controlado, e regras de autorizacao para recursos protegidos.
+- Nao ativar fluxo novo sem validar requisitos, custos e configuracao server-side. Preservar login legado e workflow Drive/GitHub ate corte autorizado.
