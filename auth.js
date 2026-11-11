@@ -20,7 +20,7 @@
         if(!user){redirect();return;}
         user.reload().then(function(){
           var current=auth.currentUser;
-          if(!current||!current.emailVerified||!(/^[^@\\s]+@fab\\.mil\\.br$/i).test((current.email||'').trim())){
+          if(!current||!current.emailVerified||!((current.email||'').trim().toLowerCase().split('@').length===2 && (current.email||'').trim().toLowerCase().split('@')[0].length>0 && (current.email||'').trim().toLowerCase().split('@')[1]==='fab.mil.br')){
             return sdk.signOut(auth).then(redirect);
           }
           document.documentElement.style.visibility='';
