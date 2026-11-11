@@ -44,3 +44,11 @@ Este diretorio nao e referenciado pelas paginas atuais. O workflow continua inde
 - Como alternativa de privacidade, usar um resolvedor autenticado no servidor; nao consultar publicamente uma base de e-mails por nome de usuario.
 - Criar as quatro contas em Firebase Authentication > Users > Add user, com e-mails validos definidos pelo administrador. Para manter as senhas atuais, sera necessario defini-las no cadastro; como ja estiveram no codigo publico, recomenda-se rotaciona-las.
 - Nao ativar o novo login nem remover o legado ate que as quatro contas tenham sido testadas.
+
+## Endereco administrativo informado
+
+- Endereco de contato institucional indicado pelo responsavel: `chf.ati.cabw@fab.mil.br`.
+- **Nao** cadastrar quatro usuarios Firebase Email/Password com o mesmo e-mail: o provedor exige identificadores de e-mail unicos por conta.
+- Nao criar aliases artificiais, enderecos inexistentes ou contas adicionais sem confirmacao do responsavel.
+- Aguardar escolha entre (a) quatro e-mails de autenticacao exclusivos, mantendo este endereco como contato administrativo, ou (b) uma unica conta Firebase compartilhada, que nao preserva identidades e revogacao individual.
+- Nenhuma alteracao no login publicado enquanto a decisao estiver pendente.
