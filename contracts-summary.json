@@ -6,7 +6,7 @@
     "fms": 53
   },
   "totals": {
-    "valorContrato": 1135368162.09,
+    "valorContrato": 1137368162.09,
     "totalEmpenhadoUsd": 669260698.76,
     "totalFaturadoUsd": 560624587.18
   },
@@ -25,7 +25,7 @@
     },
     "fms": {
       "count": 53,
-      "valorContrato": 491403957.41,
+      "valorContrato": 493403957.41,
       "totalEmpenhadoUsd": 402393079.39,
       "totalFaturadoUsd": 374962849.34
     }
